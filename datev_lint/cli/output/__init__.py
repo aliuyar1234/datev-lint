@@ -10,10 +10,10 @@ from datev_lint.cli.output.sarif import SarifOutput
 from datev_lint.cli.output.terminal import TerminalOutput
 
 __all__ = [
+    "JsonOutput",
     "OutputAdapter",
     "OutputFormat",
-    "get_output_adapter",
-    "TerminalOutput",
-    "JsonOutput",
     "SarifOutput",
+    "TerminalOutput",
+    "get_output_adapter",
 ]

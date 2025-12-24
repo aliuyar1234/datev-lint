@@ -39,12 +39,12 @@ class SarifOutput(OutputAdapter):
 
     def render_findings(
         self,
-        findings: list["Finding"],
-        summary: "ValidationSummary | None" = None,
+        findings: list[Finding],
+        summary: ValidationSummary | None = None,
     ) -> str:
         """Render findings as SARIF."""
         # Collect unique rules
-        rules_dict: dict[str, "Finding"] = {}
+        rules_dict: dict[str, Finding] = {}
         for finding in findings:
             if finding.code not in rules_dict:
                 rules_dict[finding.code] = finding
@@ -71,11 +71,11 @@ class SarifOutput(OutputAdapter):
 
         return json.dumps(sarif, indent=self.indent)
 
-    def render_result(self, result: "PipelineResult") -> str:
+    def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result as SARIF."""
         return self.render_findings(result.findings)
 
-    def _rule_to_sarif(self, finding: "Finding") -> dict[str, Any]:
+    def _rule_to_sarif(self, finding: Finding) -> dict[str, Any]:
         """Convert a rule to SARIF rule descriptor."""
         return {
             "id": finding.code,
@@ -95,7 +95,7 @@ class SarifOutput(OutputAdapter):
             },
         }
 
-    def _finding_to_sarif(self, finding: "Finding") -> dict[str, Any]:
+    def _finding_to_sarif(self, finding: Finding) -> dict[str, Any]:
         """Convert a finding to SARIF result."""
         result: dict[str, Any] = {
             "ruleId": finding.code,

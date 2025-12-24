@@ -52,7 +52,7 @@ DEFAULT_AUDIT_DIR = Path("audit")
 
 def plan(
     file_path: str | Path,
-    result: "PipelineResult",
+    result: PipelineResult,
     resolution: ConflictResolution = ConflictResolution.FIRST_WINS,
 ) -> PatchPlan:
     """
@@ -85,7 +85,7 @@ def preview(plan: PatchPlan, colorize: bool = True) -> str:
 
 def apply_fixes(
     plan: PatchPlan,
-    parse_result: "ParseResult",
+    parse_result: ParseResult,
     mode: WriteMode = WriteMode.PRESERVE,
     create_backup: bool = True,
     audit_dir: Path | None = None,
@@ -164,7 +164,7 @@ def apply_fixes(
 
 def apply_fixes_interactive(
     plan: PatchPlan,
-    parse_result: "ParseResult",
+    parse_result: ParseResult,
     mode: WriteMode = WriteMode.PRESERVE,
     audit_dir: Path | None = None,
     profile_id: str = "default",
@@ -310,39 +310,39 @@ def list_audit_entries(
 
 
 __all__ = [
+    "AuditEntry",
+    "AuditLogger",
+    "BackupManager",
+    "Conflict",
+    "ConflictResolution",
+    "DiffOutput",
+    "OperationRegistry",
+    # Models
+    "Patch",
+    "PatchOperation",
+    "PatchPlan",
+    # Classes
+    "PatchPlanner",
+    "RiskLevel",
+    "RollbackResult",
+    "WriteMode",
+    "WriteResult",
+    "apply_fixes",
+    "apply_fixes_interactive",
+    "compute_file_checksum",
+    "detect_conflicts",
+    "filter_by_risk",
+    "format_risk_warning",
+    "get_audit_entry",
+    "get_risk_summary",
+    "list_audit_entries",
     # Functions
     "plan",
     "plan_fixes",
     "preview",
     "preview_diff",
     "preview_patch",
-    "apply_fixes",
-    "apply_fixes_interactive",
-    "rollback",
-    "get_audit_entry",
-    "list_audit_entries",
-    "filter_by_risk",
-    "should_apply",
-    "get_risk_summary",
-    "format_risk_warning",
     "requires_interactive_approval",
-    "detect_conflicts",
-    "compute_file_checksum",
-    # Models
-    "Patch",
-    "PatchPlan",
-    "PatchOperation",
-    "Conflict",
-    "ConflictResolution",
-    "WriteMode",
-    "WriteResult",
-    "RollbackResult",
-    "AuditEntry",
-    "DiffOutput",
-    # Classes
-    "PatchPlanner",
-    "BackupManager",
-    "AuditLogger",
-    "OperationRegistry",
-    "RiskLevel",
+    "rollback",
+    "should_apply",
 ]

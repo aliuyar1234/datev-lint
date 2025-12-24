@@ -12,7 +12,6 @@ CRITICAL DESIGN DECISIONS:
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -22,8 +21,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from .errors import ParserError
-
+    from collections.abc import Iterator
 
 # =============================================================================
 # Enums
@@ -375,7 +373,7 @@ class ParseResult(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     @property
-    def rows(self) -> "Iterator[BookingRow | Any]":
+    def rows(self) -> Iterator[BookingRow | Any]:
         """
         Iterate over booking rows.
 

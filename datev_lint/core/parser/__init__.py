@@ -242,28 +242,28 @@ def _create_error_result(
 # =============================================================================
 
 __all__ = [
-    # Main functions
-    "parse_file",
-    "parse_bytes",
-    "parse_stream",
-    "detect_encoding",
-    "detect_format",
-    "derive_year",
-    "get_field_dictionary",
-    # Enums
-    "DetectedFormat",
-    "DateConfidence",
-    "Severity",
-    # Models
-    "Dialect",
-    "DatevHeader",
+    "BookingRow",
     "ColumnMapping",
     "ColumnMappings",
-    "BookingRow",
+    "DateConfidence",
+    "DatevHeader",
     "DerivedDate",
+    # Enums
+    "DetectedFormat",
+    # Models
+    "Dialect",
+    "FieldDefinition",
+    "FieldDictionary",
+    "Location",
     "ParseResult",
     "ParserError",
-    "Location",
-    "FieldDictionary",
-    "FieldDefinition",
+    "Severity",
+    "derive_year",
+    "detect_encoding",
+    "detect_format",
+    "get_field_dictionary",
+    "parse_bytes",
+    # Main functions
+    "parse_file",
+    "parse_stream",
 ]

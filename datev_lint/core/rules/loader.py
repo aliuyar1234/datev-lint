@@ -6,8 +6,7 @@ Loads rules from YAML files and Python plugins.
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
@@ -22,6 +21,9 @@ from .models import (
     Severity,
     Stage,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def load_rules_from_yaml(path: Path) -> list[Rule]:

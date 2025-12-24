@@ -13,10 +13,13 @@ all these edge cases correctly.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from enum import Enum, auto
+from typing import TYPE_CHECKING
 
 from .models import Dialect
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 class TokenizerState(Enum):

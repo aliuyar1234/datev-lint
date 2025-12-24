@@ -18,7 +18,7 @@ class ConstraintChecker(ABC):
     """Base class for constraint checkers."""
 
     @abstractmethod
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         """
         Check if value satisfies the constraint.
 
@@ -33,7 +33,7 @@ class ConstraintChecker(ABC):
         ...
 
     @abstractmethod
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         """Get error message for violation."""
         ...
 
@@ -41,7 +41,7 @@ class ConstraintChecker(ABC):
 class RegexConstraint(ConstraintChecker):
     """Check value against regex pattern."""
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         if not constraint.pattern:
             return True
         try:
@@ -49,7 +49,7 @@ class RegexConstraint(ConstraintChecker):
         except re.error:
             return False
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         if lang == "de":
             return f"Wert '{value}' entspricht nicht dem Muster '{constraint.pattern}'"
         return f"Value '{value}' does not match pattern '{constraint.pattern}'"
@@ -58,12 +58,12 @@ class RegexConstraint(ConstraintChecker):
 class MaxLengthConstraint(ConstraintChecker):
     """Check value does not exceed maximum length."""
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         if constraint.value is None:
             return True
         return len(value) <= constraint.value
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         if lang == "de":
             return f"Wert hat {len(value)} Zeichen, maximal {constraint.value} erlaubt"
         return f"Value has {len(value)} characters, maximum {constraint.value} allowed"
@@ -72,12 +72,12 @@ class MaxLengthConstraint(ConstraintChecker):
 class MinLengthConstraint(ConstraintChecker):
     """Check value meets minimum length."""
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         if constraint.value is None:
             return True
         return len(value) >= constraint.value
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         if lang == "de":
             return f"Wert hat {len(value)} Zeichen, mindestens {constraint.value} erforderlich"
         return f"Value has {len(value)} characters, minimum {constraint.value} required"
@@ -86,12 +86,12 @@ class MinLengthConstraint(ConstraintChecker):
 class EnumConstraint(ConstraintChecker):
     """Check value is in allowed list."""
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         if not constraint.values:
             return True
         return value in constraint.values
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         allowed = ", ".join(constraint.values or [])
         if lang == "de":
             return f"Wert '{value}' nicht in erlaubten Werten: {allowed}"
@@ -101,10 +101,10 @@ class EnumConstraint(ConstraintChecker):
 class RequiredConstraint(ConstraintChecker):
     """Check value is not empty."""
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         return bool(value and value.strip())
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         field = constraint.field or "Feld"
         if lang == "de":
             return f"{field} ist erforderlich"
@@ -122,7 +122,7 @@ class CharsetConstraint(ConstraintChecker):
         "uppercase": r"^[A-Z]*$",
     }
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         # Use pattern if provided, otherwise look up charset name
         pattern = constraint.pattern
         if not pattern and constraint.params.get("charset"):
@@ -137,7 +137,7 @@ class CharsetConstraint(ConstraintChecker):
         except re.error:
             return False
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         charset = constraint.params.get("charset", "unbekannt")
         if lang == "de":
             return f"Wert enthält unerlaubte Zeichen für Zeichensatz '{charset}'"
@@ -147,7 +147,7 @@ class CharsetConstraint(ConstraintChecker):
 class RangeConstraint(ConstraintChecker):
     """Check numeric value is within range."""
 
-    def check(self, value: str, constraint: "Constraint", context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
         try:
             num = float(value.replace(",", "."))
             min_val = constraint.params.get("min")
@@ -155,13 +155,11 @@ class RangeConstraint(ConstraintChecker):
 
             if min_val is not None and num < min_val:
                 return False
-            if max_val is not None and num > max_val:
-                return False
-            return True
+            return not (max_val is not None and num > max_val)
         except ValueError:
             return False
 
-    def get_message(self, value: str, constraint: "Constraint", lang: str = "de") -> str:
+    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
         min_val = constraint.params.get("min", "-∞")
         max_val = constraint.params.get("max", "∞")
         if lang == "de":
@@ -193,7 +191,7 @@ class ConstraintRegistry:
     def check(
         cls,
         value: str,
-        constraint: "Constraint",
+        constraint: Constraint,
         context: dict[str, Any] | None = None,
     ) -> bool:
         """Check value against constraint."""
@@ -207,7 +205,7 @@ class ConstraintRegistry:
     def get_message(
         cls,
         value: str,
-        constraint: "Constraint",
+        constraint: Constraint,
         lang: str = "de",
     ) -> str:
         """Get error message for constraint violation."""

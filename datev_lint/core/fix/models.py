@@ -6,11 +6,8 @@ Core models for patches, audit, and write operations.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any
-
 
 from pydantic import BaseModel, Field
 
@@ -19,7 +16,7 @@ from datev_lint.core.rules.models import RiskLevel
 
 def _utc_now() -> datetime:
     """Get current UTC time."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # =============================================================================

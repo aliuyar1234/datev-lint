@@ -8,11 +8,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
 
 from datev_lint.core.licensing.models import FREE_LICENSE, License
 from datev_lint.core.licensing.verifier import LicenseVerifier, VerificationError
-
 
 # License file names to search for
 LICENSE_FILE_NAMES = [

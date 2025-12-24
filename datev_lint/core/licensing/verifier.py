@@ -13,12 +13,11 @@ from typing import Any
 
 from datev_lint.core.licensing.models import License, LicenseTier
 
-
 # Try to import cryptography, fall back gracefully
 try:
+    from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     from cryptography.hazmat.primitives.serialization import load_pem_public_key
-    from cryptography.exceptions import InvalidSignature
     HAS_CRYPTO = True
 except ImportError:
     HAS_CRYPTO = False
@@ -108,7 +107,7 @@ class LicenseVerifier:
                 org_name=license_data.get("org_name"),
                 seats=license_data.get("seats", 1),
                 features=license_data.get("features", []),
-                issued_at=license_data.get("issued_at"),
+                issued_at=license_data.get("issued_at"),  # type: ignore[arg-type]  # pydantic parses
                 expires_at=license_data.get("expires_at"),
                 signature=signature_b64,
             )

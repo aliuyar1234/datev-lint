@@ -7,11 +7,14 @@ Handles backup creation, verification, and restoration.
 from __future__ import annotations
 
 import shutil
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from datev_lint.core.fix.models import RollbackResult
 from datev_lint.core.fix.planner import compute_file_checksum
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class BackupManager:
@@ -44,7 +47,7 @@ class BackupManager:
             Path to backup file
         """
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
 
         # Format timestamp for filename (with microseconds for uniqueness)
         ts_str = timestamp.strftime("%Y%m%d%H%M%S") + f"{timestamp.microsecond:06d}"
@@ -57,7 +60,6 @@ class BackupManager:
 
         # Ensure unique path if file already exists
         counter = 0
-        original_path = backup_path
         while backup_path.exists():
             counter += 1
             if self.backup_dir:
@@ -122,18 +124,17 @@ class BackupManager:
         backup_checksum = compute_file_checksum(backup_path)
 
         # Verify if requested
-        if verify and expected_checksum:
-            if backup_checksum != expected_checksum:
-                return RollbackResult(
-                    success=False,
-                    file_path=str(target_path),
-                    backup_path=str(backup_path),
-                    old_checksum="",
-                    restored_checksum=backup_checksum,
-                    expected_checksum=expected_checksum,
-                    checksums_match=False,
-                    error="Backup checksum mismatch",
-                )
+        if verify and expected_checksum and backup_checksum != expected_checksum:
+            return RollbackResult(
+                success=False,
+                file_path=str(target_path),
+                backup_path=str(backup_path),
+                old_checksum="",
+                restored_checksum=backup_checksum,
+                expected_checksum=expected_checksum,
+                checksums_match=False,
+                error="Backup checksum mismatch",
+            )
 
         # Get current checksum before restore
         old_checksum = ""

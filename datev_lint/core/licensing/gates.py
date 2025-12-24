@@ -6,18 +6,17 @@ Provides decorators and functions to gate features by license tier.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
+from datev_lint.core.licensing.loader import get_license
 from datev_lint.core.licensing.models import (
     Feature,
     FeatureGateError,
-    LicenseTier,
     License,
-    TIER_FEATURES,
+    LicenseTier,
 )
-from datev_lint.core.licensing.loader import get_license
-
 
 # Minimum tier required for each feature
 FEATURE_MIN_TIER: dict[Feature, LicenseTier] = {

@@ -7,9 +7,12 @@ Detects and resolves conflicts when multiple patches target the same field.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterator
+from typing import TYPE_CHECKING
 
 from datev_lint.core.fix.models import Conflict, ConflictResolution, Patch
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 class ConflictDetector:

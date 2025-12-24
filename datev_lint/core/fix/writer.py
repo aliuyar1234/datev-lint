@@ -6,6 +6,7 @@ Implements preserve and canonical write modes with atomic writes.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from abc import ABC, abstractmethod
@@ -20,7 +21,7 @@ from datev_lint.core.fix.models import (
     WriteResult,
 )
 from datev_lint.core.fix.operations import OperationRegistry
-from datev_lint.core.fix.planner import compute_bytes_checksum, compute_file_checksum
+from datev_lint.core.fix.planner import compute_bytes_checksum
 
 if TYPE_CHECKING:
     from datev_lint.core.parser.models import ParseResult
@@ -38,7 +39,7 @@ class Writer(ABC):
     def write(
         self,
         plan: PatchPlan,
-        parse_result: "ParseResult",
+        parse_result: ParseResult,
         output_path: Path,
     ) -> bytes:
         """
@@ -70,7 +71,7 @@ class PreserveWriter(Writer):
     def write(
         self,
         plan: PatchPlan,
-        parse_result: "ParseResult",
+        parse_result: ParseResult,
         output_path: Path,
     ) -> bytes:
         """Write with minimal changes."""
@@ -139,18 +140,18 @@ class PreserveWriter(Writer):
         self,
         line: str,
         patches: list[Patch],
-        parse_result: "ParseResult",
+        parse_result: ParseResult,
     ) -> str:
         """Apply patches to a single line while preserving formatting."""
         # Parse the line into tokens
         tokens = self._tokenize_csv_line(line)
 
         # Get column mapping
-        column_map = parse_result.column_mapping
+        column_map = parse_result.columns
 
         for patch in patches:
             # Find column index for this field
-            col_idx = column_map.name_to_index.get(patch.field)
+            col_idx = column_map.get_index(patch.field)
             if col_idx is None:
                 continue
             if col_idx >= len(tokens):
@@ -236,7 +237,7 @@ class CanonicalWriter(Writer):
     def write(
         self,
         plan: PatchPlan,
-        parse_result: "ParseResult",
+        parse_result: ParseResult,
         output_path: Path,
     ) -> bytes:
         """Write with canonical formatting."""
@@ -247,7 +248,7 @@ class CanonicalWriter(Writer):
         lines.append(";".join(header_tokens))
 
         # Write column headers (row 2)
-        column_tokens = self._quote_all(parse_result.column_mapping.original_headers)
+        column_tokens = self._quote_all(parse_result.columns.raw_labels)
         lines.append(";".join(column_tokens))
 
         # Group patches by row
@@ -265,7 +266,7 @@ class CanonicalWriter(Writer):
             # Apply patches if any
             if row_no in patches_by_row:
                 for patch in patches_by_row[row_no]:
-                    col_idx = parse_result.column_mapping.name_to_index.get(patch.field)
+                    col_idx = parse_result.columns.get_index(patch.field)
                     if col_idx is None or col_idx >= len(tokens):
                         continue
 
@@ -322,7 +323,7 @@ def get_writer(mode: WriteMode) -> Writer:
 
 def write_file(
     plan: PatchPlan,
-    parse_result: "ParseResult",
+    parse_result: ParseResult,
     output_path: Path | None = None,
     mode: WriteMode = WriteMode.PRESERVE,
     backup_path: Path | None = None,
@@ -401,10 +402,8 @@ def write_file(
                 os.replace(temp_path, output_path)
             except Exception:
                 # Clean up temp file on failure
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(temp_path)
-                except Exception:
-                    pass
                 raise
         else:
             output_path.write_bytes(content)

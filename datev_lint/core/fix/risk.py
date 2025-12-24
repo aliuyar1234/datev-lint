@@ -6,9 +6,8 @@ Defines risk levels and approval logic.
 
 from __future__ import annotations
 
-from datev_lint.core.fix.models import Patch, PatchPlan, PatchOperation
+from datev_lint.core.fix.models import Patch, PatchOperation, PatchPlan
 from datev_lint.core.rules.models import RiskLevel
-
 
 # Operation risk levels
 OPERATION_RISK: dict[PatchOperation, RiskLevel] = {

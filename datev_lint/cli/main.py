@@ -7,11 +7,11 @@ Entry point for datev-lint command.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
-from datev_lint.cli.context import CliContext, ExitCode, get_exit_code
+from datev_lint.cli.context import ExitCode, get_exit_code
 from datev_lint.cli.output import OutputFormat, get_output_adapter
 
 # Create main app
@@ -68,7 +68,7 @@ def validate(
         typer.Option("--fail-on", help="Severity level that triggers failure: error, warn, fatal"),
     ] = "error",
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--out", "-o", help="Write output to file"),
     ] = None,
     color: Annotated[
@@ -82,14 +82,15 @@ def validate(
 ) -> None:
     """Validate a DATEV export file."""
     from datev_lint.core.parser import parse_file
-    from datev_lint.core.rules import get_registry, validate as run_validation
+    from datev_lint.core.rules import get_registry
+    from datev_lint.core.rules import validate as run_validation
 
     # Parse the file
     try:
         parse_result = parse_file(file)
     except Exception as e:
         typer.echo(f"Error parsing file: {e}", err=True)
-        raise typer.Exit(ExitCode.FATAL)
+        raise typer.Exit(ExitCode.FATAL) from None
 
     # Validate
     registry = get_registry()
@@ -112,7 +113,7 @@ def validate(
     except ValueError:
         typer.echo(f"Unknown format: {format}", err=True)
         typer.echo("Available formats: terminal, json, sarif", err=True)
-        raise typer.Exit(ExitCode.USAGE)
+        raise typer.Exit(ExitCode.USAGE) from None
 
     adapter = get_output_adapter(output_format, color=color)
 
@@ -178,7 +179,8 @@ def fix(
     ] = True,
 ) -> None:
     """Fix issues in a DATEV export file."""
-    from datev_lint.core.fix import plan as plan_fixes, preview, apply_fixes
+    from datev_lint.core.fix import apply_fixes
+    from datev_lint.core.fix import plan as plan_fixes
     from datev_lint.core.fix.models import WriteMode
     from datev_lint.core.parser import parse_file
     from datev_lint.core.rules import validate as run_validation
@@ -189,7 +191,7 @@ def fix(
         parse_result = parse_file(file)
     except Exception as e:
         typer.echo(f"Error parsing file: {e}", err=True)
-        raise typer.Exit(ExitCode.FATAL)
+        raise typer.Exit(ExitCode.FATAL) from None
 
     # Validate to get findings
     result = run_validation(parse_result, profile=profile)
@@ -212,7 +214,6 @@ def fix(
         # Apply fixes (Pro feature) - check license
         from datev_lint.core.licensing import (
             Feature,
-            FeatureGateError,
             check_feature,
             get_upgrade_cta,
         )
@@ -228,13 +229,13 @@ def fix(
             risk_level = RiskLevel(accept_risk)
         except ValueError:
             typer.echo(f"Invalid risk level: {accept_risk}", err=True)
-            raise typer.Exit(ExitCode.USAGE)
+            raise typer.Exit(ExitCode.USAGE) from None
 
         try:
             mode = WriteMode(write_mode)
         except ValueError:
             typer.echo(f"Invalid write mode: {write_mode}", err=True)
-            raise typer.Exit(ExitCode.USAGE)
+            raise typer.Exit(ExitCode.USAGE) from None
 
         # Show preview first
         typer.echo(adapter.render_patch_plan(fix_plan))
@@ -298,7 +299,7 @@ def list_rules(
         typer.Option("--profile", "-p", help="Filter by profile"),
     ] = "default",
     severity: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--severity", "-s", help="Filter by severity"),
     ] = None,
 ) -> None:
@@ -371,7 +372,7 @@ def explain(
 def rollback(
     run_id: Annotated[str, typer.Argument(help="Run ID to rollback")],
     audit_dir: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--audit-dir", help="Audit log directory"),
     ] = None,
 ) -> None:
@@ -381,7 +382,7 @@ def rollback(
     result = do_rollback(run_id, audit_dir=audit_dir)
 
     if result.success:
-        typer.echo(f"✓ Rollback successful")
+        typer.echo("✓ Rollback successful")
         typer.echo(f"  File: {result.file_path}")
         typer.echo(f"  Backup used: {result.backup_path}")
         if result.checksums_match:

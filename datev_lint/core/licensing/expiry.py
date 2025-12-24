@@ -6,21 +6,13 @@ Provides warnings and graceful fallback for expiring/expired licenses.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING
-
 from datev_lint.core.licensing.models import (
+    FREE_LICENSE,
     ExpiryStatus,
     Feature,
     License,
     LicenseTier,
-    FREE_LICENSE,
-    TIER_FEATURES,
 )
-
-if TYPE_CHECKING:
-    pass
-
 
 # Warning threshold in days
 EXPIRY_WARNING_DAYS = 14

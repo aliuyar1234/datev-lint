@@ -7,10 +7,12 @@ Manages CLI state, exit codes, and shared context.
 from __future__ import annotations
 
 from enum import IntEnum
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class ExitCode(IntEnum):

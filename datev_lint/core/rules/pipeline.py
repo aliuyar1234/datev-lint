@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 from collections import Counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import datev_lint
 from datev_lint.core.parser import BookingRow, ParserError
@@ -19,7 +19,6 @@ from .models import (
     FixCandidate,
     Location,
     Profile,
-    RiskLevel,
     Rule,
     Severity,
     Stage,
@@ -42,6 +41,7 @@ class PipelineResult:
         profile_version: str = "",
         stats: dict[str, int] | None = None,
         file: str | None = None,
+        profile_id: str = "default",
     ) -> None:
         self.findings = findings
         self.aborted_at_stage = aborted_at_stage
@@ -49,6 +49,7 @@ class PipelineResult:
         self.profile_version = profile_version
         self.stats = stats or {}
         self.file = file
+        self.profile_id = profile_id
 
     @property
     def has_fatal(self) -> bool:
@@ -70,7 +71,7 @@ class PipelineResult:
             encoding=encoding,
             row_count=row_count,
             engine_version=self.engine_version,
-            profile_id=self.stats.get("profile_id", "default"),
+            profile_id=self.profile_id,
             profile_version=self.profile_version,
             fatal_count=severity_counts.get(Severity.FATAL, 0),
             error_count=severity_counts.get(Severity.ERROR, 0),
@@ -101,7 +102,7 @@ class ExecutionPipeline:
         self.profile = profile
         self._rules_by_stage: dict[Stage, list[Rule]] = {}
 
-    def run(self, parse_result: "ParseResult") -> PipelineResult:
+    def run(self, parse_result: ParseResult) -> PipelineResult:
         """Run all stages, collecting findings."""
         start_time = time.perf_counter()
 
@@ -114,10 +115,8 @@ class ExecutionPipeline:
         # Get profile-filtered rules
         if self.profile:
             rules = self.registry.get_rules_for_profile(self.profile)
-            stats["profile_id"] = self.profile.id
         else:
             rules = list(self.registry.rules.values())
-            stats["profile_id"] = "default"
 
         # Group rules by stage
         self._rules_by_stage = {}
@@ -162,6 +161,7 @@ class ExecutionPipeline:
                         aborted_at_stage=stage,
                         profile_version=self.profile.version if self.profile else "1.0.0",
                         stats=stats,
+                        profile_id=self.profile.id if self.profile else "default",
                     )
 
         end_time = time.perf_counter()
@@ -171,9 +171,10 @@ class ExecutionPipeline:
             findings=findings,
             profile_version=self.profile.version if self.profile else "1.0.0",
             stats=stats,
+            profile_id=self.profile.id if self.profile else "default",
         )
 
-    def _run_stage(self, stage: Stage, parse_result: "ParseResult") -> list[Finding]:
+    def _run_stage(self, stage: Stage, parse_result: ParseResult) -> list[Finding]:
         """Run all rules for a stage."""
         rules = self._rules_by_stage.get(stage, [])
         if not rules:
@@ -212,7 +213,7 @@ class ExecutionPipeline:
     def _run_header_rule(
         self,
         rule: Rule,
-        parse_result: "ParseResult",
+        parse_result: ParseResult,
         filename: str,
     ) -> list[Finding]:
         """Run a single header rule."""
@@ -226,10 +227,7 @@ class ExecutionPipeline:
 
         # Get field value from header
         value = getattr(header, field_name, None)
-        if value is None:
-            value = ""
-        else:
-            value = str(value)
+        value = "" if value is None else str(value)
 
         # Check constraint
         is_valid = ConstraintRegistry.check(value, rule.constraint)
@@ -304,7 +302,7 @@ class ExecutionPipeline:
     def _run_cross_row_rule(
         self,
         rule: Rule,
-        parse_result: "ParseResult",
+        parse_result: ParseResult,
         filename: str,
     ) -> list[Finding]:
         """Run a cross-row rule (e.g., duplicate detection)."""

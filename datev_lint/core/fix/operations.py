@@ -13,7 +13,6 @@ from typing import Any
 
 from datev_lint.core.fix.models import OperationContext, PatchOperation
 
-
 # =============================================================================
 # Operation Interface
 # =============================================================================
@@ -37,7 +36,7 @@ class SetFieldOperation(Operation):
     """Set field to a specific value."""
 
     def apply(self, value: str, context: OperationContext, params: dict[str, Any]) -> str:
-        return params.get("new_value", value)
+        return str(params.get("new_value", value))
 
 
 class UpperOperation(Operation):

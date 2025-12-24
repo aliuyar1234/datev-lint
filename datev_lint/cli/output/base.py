@@ -6,15 +6,15 @@ Defines the interface for output adapters.
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol, TextIO
-import sys
+from typing import TYPE_CHECKING, TextIO
 
 if TYPE_CHECKING:
+    from datev_lint.core.fix.models import PatchPlan
     from datev_lint.core.rules.models import Finding, ValidationSummary
     from datev_lint.core.rules.pipeline import PipelineResult
-    from datev_lint.core.fix.models import PatchPlan
 
 
 class OutputFormat(Enum):
@@ -38,14 +38,14 @@ class OutputAdapter(ABC):
     @abstractmethod
     def render_findings(
         self,
-        findings: list["Finding"],
-        summary: "ValidationSummary | None" = None,
+        findings: list[Finding],
+        summary: ValidationSummary | None = None,
     ) -> str:
         """Render findings to string."""
         pass
 
     @abstractmethod
-    def render_result(self, result: "PipelineResult") -> str:
+    def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result to string."""
         pass
 
@@ -56,12 +56,12 @@ class OutputAdapter(ABC):
             self.stream.write("\n")
         self.stream.flush()
 
-    def render_and_write(self, result: "PipelineResult") -> None:
+    def render_and_write(self, result: PipelineResult) -> None:
         """Render and write result to stream."""
         output = self.render_result(result)
         self.write(output)
 
-    def render_patch_plan(self, plan: "PatchPlan") -> str:
+    def render_patch_plan(self, plan: PatchPlan) -> str:
         """Render a patch plan. Override in subclasses that support it."""
         return ""
 

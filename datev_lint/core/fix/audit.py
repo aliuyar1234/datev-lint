@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -82,7 +82,7 @@ class AuditLogger:
         # Create audit entry
         audit_entry = AuditEntry(
             run_id=run_id,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             file_path=plan.file_path,
             file_checksum_before=result.old_checksum,
             file_checksum_after=result.new_checksum,
@@ -136,7 +136,7 @@ class AuditLogger:
             write_mode=entry.write_mode,
             duration_ms=entry.duration_ms,
             rolled_back=True,
-            rollback_timestamp=datetime.now(timezone.utc),
+            rollback_timestamp=datetime.now(UTC),
         )
 
         # Overwrite entry
@@ -156,7 +156,7 @@ class AuditLogger:
         if not entry_path.exists():
             return None
 
-        with open(entry_path, "r", encoding="utf-8") as f:
+        with open(entry_path, encoding="utf-8") as f:
             data = json.load(f)
 
         return self._dict_to_entry(data)
@@ -183,7 +183,7 @@ class AuditLogger:
                 break
 
             try:
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     data = json.load(f)
                 entry = self._dict_to_entry(data)
 

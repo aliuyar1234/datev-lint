@@ -8,13 +8,9 @@ from __future__ import annotations
 
 import fnmatch
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from .loader import load_profiles_from_directory, load_rules_from_directory
 from .models import Profile, Rule, Severity
-
-if TYPE_CHECKING:
-    pass
 
 
 class RuleRegistry:

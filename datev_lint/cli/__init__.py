@@ -8,7 +8,7 @@ from datev_lint.cli.context import CliContext, ExitCode
 from datev_lint.cli.main import app
 
 __all__ = [
-    "app",
     "CliContext",
     "ExitCode",
+    "app",
 ]

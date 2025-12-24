@@ -12,9 +12,9 @@ from typing import TYPE_CHECKING, TextIO
 from datev_lint.cli.output.base import OutputAdapter, OutputFormat
 
 if TYPE_CHECKING:
+    from datev_lint.core.fix.models import PatchPlan
     from datev_lint.core.rules.models import Finding, ValidationSummary
     from datev_lint.core.rules.pipeline import PipelineResult
-    from datev_lint.core.fix.models import PatchPlan
 
 
 # Check if Unicode is supported
@@ -75,8 +75,8 @@ class TerminalOutput(OutputAdapter):
 
     def render_findings(
         self,
-        findings: list["Finding"],
-        summary: "ValidationSummary | None" = None,
+        findings: list[Finding],
+        summary: ValidationSummary | None = None,
     ) -> str:
         """Render findings to terminal string."""
         if not findings:
@@ -85,7 +85,7 @@ class TerminalOutput(OutputAdapter):
         lines: list[str] = []
 
         # Group by file
-        by_file: dict[str, list["Finding"]] = {}
+        by_file: dict[str, list[Finding]] = {}
         for finding in findings:
             file_key = finding.location.file or "<unknown>"
             if file_key not in by_file:
@@ -105,7 +105,7 @@ class TerminalOutput(OutputAdapter):
 
         return "\n".join(lines)
 
-    def render_result(self, result: "PipelineResult") -> str:
+    def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result."""
         from datev_lint.core.rules.models import ValidationSummary
 
@@ -126,7 +126,7 @@ class TerminalOutput(OutputAdapter):
 
         return self.render_findings(result.findings, summary)
 
-    def render_patch_plan(self, plan: "PatchPlan") -> str:
+    def render_patch_plan(self, plan: PatchPlan) -> str:
         """Render a patch plan preview."""
         if not plan.patches:
             return self._style(f"{self._success_symbol} No fixes to apply.", "green")
@@ -171,7 +171,7 @@ class TerminalOutput(OutputAdapter):
 
         return "\n".join(lines)
 
-    def _format_finding(self, finding: "Finding") -> str:
+    def _format_finding(self, finding: Finding) -> str:
         """Format a single finding."""
         severity = finding.severity.value
         color = SEVERITY_COLORS.get(severity, "white")
@@ -197,7 +197,7 @@ class TerminalOutput(OutputAdapter):
         else:
             return f"  {styled_symbol} {finding.message} [{styled_code}]"
 
-    def _format_summary(self, summary: "ValidationSummary") -> str:
+    def _format_summary(self, summary: ValidationSummary) -> str:
         """Format summary line."""
         parts = []
 

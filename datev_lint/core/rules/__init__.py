@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 def validate(
-    parse_result: "ParseResult",
+    parse_result: ParseResult,
     profile: Profile | str | None = None,
 ) -> PipelineResult:
     """
@@ -69,7 +69,7 @@ def validate(
 
 
 def get_validation_summary(
-    parse_result: "ParseResult",
+    parse_result: ParseResult,
     pipeline_result: PipelineResult,
 ) -> ValidationSummary:
     """Create a validation summary from parse and pipeline results."""
@@ -88,29 +88,29 @@ def get_validation_summary(
 
 
 __all__ = [
-    # Main function
-    "validate",
-    "get_validation_summary",
-    # Pipeline
-    "ExecutionPipeline",
-    "PipelineResult",
-    # Registry
-    "RuleRegistry",
-    "get_registry",
-    "reset_registry",
+    "Constraint",
     # Constraints
     "ConstraintRegistry",
-    # Models
-    "Stage",
-    "Severity",
-    "RiskLevel",
-    "Constraint",
-    "FixStrategy",
-    "Rule",
-    "Location",
-    "FixCandidate",
+    # Pipeline
+    "ExecutionPipeline",
     "Finding",
+    "FixCandidate",
+    "FixStrategy",
+    "Location",
+    "PipelineResult",
     "Profile",
     "ProfileOverrides",
+    "RiskLevel",
+    "Rule",
+    # Registry
+    "RuleRegistry",
+    "Severity",
+    # Models
+    "Stage",
     "ValidationSummary",
+    "get_registry",
+    "get_validation_summary",
+    "reset_registry",
+    # Main function
+    "validate",
 ]

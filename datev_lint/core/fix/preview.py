@@ -6,12 +6,14 @@ Generates human-readable diffs of patches without applying them.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TextIO
 import sys
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, TextIO
 
-from datev_lint.core.fix.models import Patch, PatchPlan, WriteMode
 from datev_lint.core.rules.models import RiskLevel
+
+if TYPE_CHECKING:
+    from datev_lint.core.fix.models import Patch, PatchPlan
 
 
 @dataclass

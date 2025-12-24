@@ -7,15 +7,14 @@ Renders findings as JSON for machine processing.
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, TextIO
 
 from datev_lint.cli.output.base import OutputAdapter, OutputFormat
 
 if TYPE_CHECKING:
+    from datev_lint.core.fix.models import PatchPlan
     from datev_lint.core.rules.models import Finding, ValidationSummary
     from datev_lint.core.rules.pipeline import PipelineResult
-    from datev_lint.core.fix.models import PatchPlan
 
 
 class JsonOutput(OutputAdapter):
@@ -29,8 +28,8 @@ class JsonOutput(OutputAdapter):
 
     def render_findings(
         self,
-        findings: list["Finding"],
-        summary: "ValidationSummary | None" = None,
+        findings: list[Finding],
+        summary: ValidationSummary | None = None,
     ) -> str:
         """Render findings as JSON."""
         output: dict[str, Any] = {
@@ -42,7 +41,7 @@ class JsonOutput(OutputAdapter):
 
         return json.dumps(output, indent=self.indent, default=str)
 
-    def render_result(self, result: "PipelineResult") -> str:
+    def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result as JSON."""
         from datev_lint.core.rules.models import ValidationSummary
 
@@ -62,7 +61,7 @@ class JsonOutput(OutputAdapter):
 
         return self.render_findings(result.findings, summary)
 
-    def render_patch_plan(self, plan: "PatchPlan") -> str:
+    def render_patch_plan(self, plan: PatchPlan) -> str:
         """Render patch plan as JSON."""
         output = {
             "file_path": plan.file_path,
@@ -102,7 +101,7 @@ class JsonOutput(OutputAdapter):
 
         return json.dumps(output, indent=self.indent)
 
-    def _finding_to_dict(self, finding: "Finding") -> dict[str, Any]:
+    def _finding_to_dict(self, finding: Finding) -> dict[str, Any]:
         """Convert finding to dictionary."""
         return {
             "code": finding.code,
@@ -131,7 +130,7 @@ class JsonOutput(OutputAdapter):
             "docs_url": finding.docs_url,
         }
 
-    def _summary_to_dict(self, summary: "ValidationSummary") -> dict[str, Any]:
+    def _summary_to_dict(self, summary: ValidationSummary) -> dict[str, Any]:
         """Convert summary to dictionary."""
         return {
             "file": summary.file,

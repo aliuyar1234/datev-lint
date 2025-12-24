@@ -6,9 +6,9 @@ Core models for license tiers, features, and verification.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import contextlib
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -105,7 +105,7 @@ class License(BaseModel):
     org_name: str | None = Field(default=None, description="Organization name")
     seats: int = Field(default=1, ge=1, description="Number of seats")
     features: list[str] = Field(default_factory=list, description="Explicit feature list")
-    issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime | None = Field(default=None, description="Expiry date (None = perpetual)")
     signature: str = Field(default="", description="Base64 Ed25519 signature")
 
@@ -116,14 +116,14 @@ class License(BaseModel):
         """Check if license is expired."""
         if self.expires_at is None:
             return False
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.now(UTC) > self.expires_at
 
     @property
     def days_until_expiry(self) -> int | None:
         """Days until expiry, or None if perpetual."""
         if self.expires_at is None:
             return None
-        delta = self.expires_at - datetime.now(timezone.utc)
+        delta = self.expires_at - datetime.now(UTC)
         return max(0, delta.days)
 
     @property
@@ -157,10 +157,8 @@ class License(BaseModel):
 
         # Add explicit features
         for f_name in self.features:
-            try:
+            with contextlib.suppress(ValueError):
                 features.add(Feature(f_name))
-            except ValueError:
-                pass
 
         return features
 

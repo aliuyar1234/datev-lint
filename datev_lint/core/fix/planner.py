@@ -166,7 +166,7 @@ class PatchPlanner:
 
 def plan_fixes(
     file_path: str | Path,
-    result: "PipelineResult",
+    result: PipelineResult,
     resolution: ConflictResolution = ConflictResolution.FIRST_WINS,
 ) -> PatchPlan:
     """
