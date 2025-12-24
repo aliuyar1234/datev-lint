@@ -1,0 +1,16 @@
+# Default Profile
+# Enables all rules with default severities
+
+id: default
+version: "1.0.0"
+label: "Standard-Profil"
+
+enable:
+  - "*"
+
+disable: []
+
+overrides:
+  severity: {}
+  params: {}
+  disabled: []

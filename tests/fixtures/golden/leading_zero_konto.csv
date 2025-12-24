@@ -1,0 +1,4 @@
+"EXTF";700;21;"Buchungsstapel";13;20250115120000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Leading Zeros Test";;"";"";;"";"EUR";;;;;;;0
+"Umsatz";"S/H";"WKZ";"Kurs";"Basis-Umsatz";"WKZ Basis-Umsatz";"Konto";"Gegenkonto";"BU-Schlüssel";"Belegdatum";"Belegfeld 1";"Belegfeld 2";"Skonto";"Buchungstext"
+"100,00";"S";"EUR";"";"";"";"0001200";"0008400";"";"1501";"RE001";"";"";Konto mit führenden Nullen"
+"250,50";"H";"EUR";"";"";"";"0000123";"0000456";"";"1501";"RE002";"";"";Mehr führende Nullen"

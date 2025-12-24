@@ -1,0 +1,5 @@
+"EXTF";700;21;"Buchungsstapel";13;20250115120000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
+"Umsatz";"S/H";"WKZ";"Konto";"Gegenkonto";"Belegdatum";"Belegfeld 1";"Buchungstext"
+"100,00";"S";"EUR";"1200";"8400";"1501";"re-2025.001";"Test booking lowercase"
+"200,00";"H";"EUR";"1200";"8400";"1502";"INV-2025-002";"Test booking valid"
+"300,00";"S";"EUR";"1200";"8400";"1503";"TOO-LONG-BELEGFELD-THAT-EXCEEDS-36-CHARACTERS-LIMIT";"Too long belegfeld1"

@@ -1,0 +1,18 @@
+# SKR03 Default Profile
+# German chart of accounts (Standardkontenrahmen 03)
+
+id: de.skr03.default
+version: "1.0.0"
+label: "Deutschland SKR03 - Standard"
+base: default
+
+enable:
+  - "*"
+
+disable:
+  - "DVL-HINT-*"
+
+overrides:
+  severity: {}
+  params: {}
+  disabled: []

@@ -1,0 +1,340 @@
+# Field Dictionary - Single Source of Truth for DATEV Buchungsstapel Fields
+# Version 1.0.0
+#
+# This file defines all fields for DATEV Format Category 21 (Buchungsstapel)
+# Based on DATEV Format Version 700 specification
+
+version: "1.0.0"
+
+fields:
+  # ============================================================================
+  # Required Fields (Pflichtfelder)
+  # ============================================================================
+
+  umsatz:
+    synonyms:
+      - "Umsatz"
+      - "Betrag"
+      - "Amount"
+      - "Umsatz (ohne Soll/Haben-Kz)"
+    required: true
+    type: decimal
+    decimal_places: 2
+    description: "Buchungsbetrag ohne Vorzeichen"
+    fix_strategies:
+      - normalize_decimal
+
+  soll_haben:
+    synonyms:
+      - "S/H"
+      - "Soll/Haben"
+      - "SH"
+      - "Soll/Haben-Kennzeichen"
+    required: true
+    type: enum
+    enum_values:
+      - "S"
+      - "H"
+    description: "S = Soll, H = Haben"
+
+  wkz:
+    synonyms:
+      - "WKZ"
+      - "Währung"
+      - "Currency"
+      - "Währungskennzeichen"
+    required: false
+    type: string
+    max_length: 3
+    description: "ISO-Währungscode, z.B. EUR, USD"
+
+  kurs:
+    synonyms:
+      - "Kurs"
+      - "Exchange Rate"
+      - "Wechselkurs"
+    required: false
+    type: decimal
+    decimal_places: 6
+    description: "Wechselkurs für Fremdwährungen"
+
+  basis_umsatz:
+    synonyms:
+      - "Basis-Umsatz"
+      - "Basisumsatz"
+      - "Base Amount"
+    required: false
+    type: decimal
+    decimal_places: 2
+    description: "Umsatz in Basiswährung"
+
+  wkz_basis_umsatz:
+    synonyms:
+      - "WKZ Basis-Umsatz"
+      - "Basis-WKZ"
+    required: false
+    type: string
+    max_length: 3
+    description: "Währungskennzeichen für Basis-Umsatz"
+
+  konto:
+    synonyms:
+      - "Konto"
+      - "Account"
+      - "Kontonummer"
+      - "Soll-Konto"
+    required: true
+    type: string
+    max_length: 9
+    charset: digits
+    charset_pattern: "^\\d+$"
+    description: "Kontonummer (Soll-Seite der Buchung)"
+    fix_strategies: []
+
+  gegenkonto:
+    synonyms:
+      - "Gegenkonto"
+      - "Gegen-Konto"
+      - "Counter Account"
+      - "Haben-Konto"
+    required: true
+    type: string
+    max_length: 9
+    charset: digits
+    charset_pattern: "^\\d+$"
+    description: "Gegenkontonummer (Haben-Seite der Buchung)"
+    fix_strategies: []
+
+  bu_schluessel:
+    synonyms:
+      - "BU-Schlüssel"
+      - "BU Schlüssel"
+      - "Buchungsschlüssel"
+      - "BU"
+    required: false
+    type: string
+    max_length: 4
+    description: "DATEV-Buchungsschlüssel für Steuer-Automatik"
+
+  belegdatum:
+    synonyms:
+      - "Belegdatum"
+      - "Datum"
+      - "Date"
+      - "Beleg-Datum"
+    required: true
+    type: ttmm
+    max_length: 4
+    charset_pattern: "^\\d{4}$"
+    description: "Belegdatum im TTMM-Format (Tag+Monat, Jahr aus Kontext)"
+
+  belegfeld1:
+    synonyms:
+      - "Belegfeld 1"
+      - "Belegfeld1"
+      - "Belegnummer"
+      - "Beleg-Nr"
+      - "Beleg Nr."
+    required: false
+    type: string
+    max_length: 36
+    charset: belegfeld1
+    charset_pattern: "^[A-Z0-9_$&%*+\\-/]*$"
+    description: "Belegnummer - nur Großbuchstaben, Zahlen und bestimmte Sonderzeichen"
+    fix_strategies:
+      - upper
+      - sanitize_chars
+      - truncate
+
+  belegfeld2:
+    synonyms:
+      - "Belegfeld 2"
+      - "Belegfeld2"
+    required: false
+    type: string
+    max_length: 12
+    description: "Zusätzliches Belegfeld"
+
+  skonto:
+    synonyms:
+      - "Skonto"
+      - "Discount"
+    required: false
+    type: decimal
+    decimal_places: 2
+    description: "Skontobetrag"
+
+  buchungstext:
+    synonyms:
+      - "Buchungstext"
+      - "Text"
+      - "Beschreibung"
+      - "Description"
+    required: false
+    type: string
+    max_length: 60
+    description: "Buchungstext / Beschreibung"
+
+  # ============================================================================
+  # Additional Fields (Optionale Felder)
+  # ============================================================================
+
+  postensperre:
+    synonyms:
+      - "Postensperre"
+      - "Postensperre bis"
+    required: false
+    type: integer
+    description: "Postensperre-Kennzeichen"
+
+  diverses_konto:
+    synonyms:
+      - "Diverses Konto"
+      - "Div. Konto"
+    required: false
+    type: string
+    max_length: 9
+    description: "Diverses Konto (für Splittbuchungen)"
+
+  zz_wert:
+    synonyms:
+      - "ZZ-Wert"
+      - "ZZ Wert"
+      - "Zahlungsziel"
+    required: false
+    type: integer
+    description: "Zahlungsziel in Tagen"
+
+  zz_zielart:
+    synonyms:
+      - "ZZ-Zielart"
+      - "Zielart"
+    required: false
+    type: integer
+    description: "Art des Zahlungsziels"
+
+  skonto_typ:
+    synonyms:
+      - "Skonto-Typ"
+      - "Skontotyp"
+    required: false
+    type: string
+    max_length: 1
+    description: "Skonto-Typ (1=manuell, 2=auto)"
+
+  auftraggeber_id:
+    synonyms:
+      - "Auftraggeber-ID"
+      - "Auftraggeber ID"
+    required: false
+    type: string
+    max_length: 35
+    description: "ID des Auftraggebers"
+
+  kostenstelle_1:
+    synonyms:
+      - "KOST1 - Kostenstelle"
+      - "Kostenstelle 1"
+      - "KOST1"
+    required: false
+    type: string
+    max_length: 36
+    description: "Kostenstelle 1"
+
+  kostenstelle_2:
+    synonyms:
+      - "KOST2 - Kostenstelle"
+      - "Kostenstelle 2"
+      - "KOST2"
+    required: false
+    type: string
+    max_length: 36
+    description: "Kostenstelle 2"
+
+  kost_menge:
+    synonyms:
+      - "Kost-Menge"
+      - "KOST-Menge"
+    required: false
+    type: decimal
+    description: "Kostenmenge"
+
+  eu_land:
+    synonyms:
+      - "EU-Land u. UStID"
+      - "EU-Land"
+      - "USt-IdNr. des Leistungsempfängers"
+    required: false
+    type: string
+    max_length: 15
+    description: "EU-Land und USt-ID"
+
+  eu_steuersatz:
+    synonyms:
+      - "EU-Steuersatz"
+      - "EU-USt-Satz"
+    required: false
+    type: decimal
+    description: "EU-Steuersatz"
+
+  stueck:
+    synonyms:
+      - "Stück"
+      - "Menge"
+    required: false
+    type: integer
+    description: "Stückzahl"
+
+  gewicht:
+    synonyms:
+      - "Gewicht"
+    required: false
+    type: decimal
+    description: "Gewicht"
+
+  leistungsdatum:
+    synonyms:
+      - "Leistungsdatum"
+      - "Leistungs-Datum"
+    required: false
+    type: ttmm
+    max_length: 4
+    description: "Datum der Leistungserbringung (TTMM)"
+
+  festschreibung:
+    synonyms:
+      - "Festschreibung"
+    required: false
+    type: integer
+    enum_values:
+      - "0"
+      - "1"
+    description: "0 = nicht festgeschrieben, 1 = festgeschrieben"
+
+  generalumkehr:
+    synonyms:
+      - "Generalumkehr"
+      - "Gen.-Umk."
+    required: false
+    type: string
+    max_length: 1
+    description: "Generalumkehr-Kennzeichen"
+
+  steuerschluessel:
+    synonyms:
+      - "Steuerschlüssel"
+      - "USt-Schlüssel"
+    required: false
+    type: string
+    max_length: 2
+    description: "Umsatzsteuerschlüssel"
+
+  ustid_nr:
+    synonyms:
+      - "USt-IdNr."
+      - "USt-ID"
+      - "Umsatzsteuer-ID"
+    required: false
+    type: string
+    max_length: 15
+    description: "Umsatzsteuer-Identifikationsnummer"

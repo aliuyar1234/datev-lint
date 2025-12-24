@@ -1,0 +1,11 @@
+{
+  "license_id": "lic_test_pro_001",
+  "tier": "pro",
+  "org_id": "org_test",
+  "org_name": "Test Organization",
+  "seats": 1,
+  "features": ["fix_apply", "pdf_report", "sarif_full"],
+  "issued_at": "2025-01-01T00:00:00Z",
+  "expires_at": "2030-01-01T00:00:00Z",
+  "signature": "test_signature_placeholder"
+}

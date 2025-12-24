@@ -1,0 +1,4 @@
+"EXTF";700;21;"Buchungsstapel";13;20250115120000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Windows-1252 Test";;"";"";;"";"EUR";;;;;;;0
+"Umsatz";"S/H";"WKZ";"Kurs";"Basis-Umsatz";"WKZ Basis-Umsatz";"Konto";"Gegenkonto";"BU-Schlüssel";"Belegdatum";"Belegfeld 1";"Belegfeld 2";"Skonto";"Buchungstext"
+"100,00";"S";"EUR";"";"";"";"1200";"8400";"";"1501";"RE001";"";"";Büromaterial"
+"250,50";"H";"EUR";"";"";"";"4400";"1200";"";"1501";"RE002";"";"";Müller GmbH"

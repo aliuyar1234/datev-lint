@@ -1,0 +1,243 @@
+# Base Rules for DATEV Validation
+# Version 1.0.0
+
+rules:
+  # ===========================================================================
+  # Field Validation Rules
+  # ===========================================================================
+
+  DVL-FIELD-001:
+    version: "1.0.0"
+    title: "Pflichtfeld Konto fehlt"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: konto
+    constraint:
+      type: required
+      field: konto
+    message:
+      de: "Das Pflichtfeld 'Konto' fehlt oder ist leer"
+      en: "Required field 'Konto' is missing or empty"
+
+  DVL-FIELD-002:
+    version: "1.0.0"
+    title: "Pflichtfeld Gegenkonto fehlt"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: gegenkonto
+    constraint:
+      type: required
+      field: gegenkonto
+    message:
+      de: "Das Pflichtfeld 'Gegenkonto' fehlt oder ist leer"
+      en: "Required field 'Gegenkonto' is missing or empty"
+
+  DVL-FIELD-003:
+    version: "1.0.0"
+    title: "Pflichtfeld Umsatz fehlt"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: umsatz
+    constraint:
+      type: required
+      field: umsatz
+    message:
+      de: "Das Pflichtfeld 'Umsatz' fehlt oder ist leer"
+      en: "Required field 'Umsatz' is missing or empty"
+
+  DVL-FIELD-004:
+    version: "1.0.0"
+    title: "Pflichtfeld Soll/Haben fehlt"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: soll_haben
+    constraint:
+      type: required
+      field: soll_haben
+    message:
+      de: "Das Pflichtfeld 'S/H' fehlt oder ist leer"
+      en: "Required field 'S/H' is missing or empty"
+
+  DVL-FIELD-005:
+    version: "1.0.0"
+    title: "Ungültiges Soll/Haben-Kennzeichen"
+    stage: row_semantic
+    severity: error
+    applies_to: row
+    selector:
+      field: soll_haben
+    constraint:
+      type: enum
+      values:
+        - "S"
+        - "H"
+    message:
+      de: "Soll/Haben muss 'S' oder 'H' sein"
+      en: "Debit/Credit must be 'S' or 'H'"
+
+  DVL-FIELD-006:
+    version: "1.0.0"
+    title: "Konto nur Ziffern"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: konto
+    constraint:
+      type: regex
+      pattern: "^\\d+$"
+    message:
+      de: "Konto darf nur Ziffern enthalten"
+      en: "Account number must contain only digits"
+
+  DVL-FIELD-007:
+    version: "1.0.0"
+    title: "Gegenkonto nur Ziffern"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: gegenkonto
+    constraint:
+      type: regex
+      pattern: "^\\d+$"
+    message:
+      de: "Gegenkonto darf nur Ziffern enthalten"
+      en: "Counter account must contain only digits"
+
+  # ===========================================================================
+  # Belegfeld 1 Rules
+  # ===========================================================================
+
+  DVL-FIELD-011:
+    version: "1.0.0"
+    title: "Belegfeld 1 ungültige Zeichen"
+    stage: row_semantic
+    severity: warn
+    applies_to: row
+    selector:
+      field: belegfeld1
+    constraint:
+      type: regex
+      pattern: "^[A-Z0-9_$&%*+\\-/]*$"
+    message:
+      de: "Belegfeld 1 enthält ungültige Zeichen. Erlaubt: A-Z, 0-9, _$&%*+-/"
+      en: "Document field 1 contains invalid characters. Allowed: A-Z, 0-9, _$&%*+-/"
+    fix:
+      type: sanitize
+      risk: low
+      steps:
+        - operation: upper
+        - operation: sanitize_chars
+          params:
+            pattern: "[^A-Z0-9_$&%*+\\-/]"
+
+  DVL-FIELD-012:
+    version: "1.0.0"
+    title: "Belegfeld 1 zu lang"
+    stage: row_semantic
+    severity: warn
+    applies_to: row
+    selector:
+      field: belegfeld1
+    constraint:
+      type: max_length
+      value: 36
+    message:
+      de: "Belegfeld 1 darf maximal 36 Zeichen haben"
+      en: "Document field 1 must be at most 36 characters"
+    fix:
+      type: truncate
+      risk: medium
+      steps:
+        - operation: truncate
+          params:
+            max_length: 36
+
+  DVL-FIELD-013:
+    version: "1.0.0"
+    title: "Belegfeld 1 Kleinbuchstaben"
+    stage: row_semantic
+    severity: info
+    applies_to: row
+    selector:
+      field: belegfeld1
+    constraint:
+      type: regex
+      pattern: "^[^a-z]*$"
+    message:
+      de: "Belegfeld 1 sollte keine Kleinbuchstaben enthalten"
+      en: "Document field 1 should not contain lowercase letters"
+    fix:
+      type: upper
+      risk: low
+      steps:
+        - operation: upper
+
+  # ===========================================================================
+  # Buchungstext Rules
+  # ===========================================================================
+
+  DVL-FIELD-021:
+    version: "1.0.0"
+    title: "Buchungstext zu lang"
+    stage: row_semantic
+    severity: warn
+    applies_to: row
+    selector:
+      field: buchungstext
+    constraint:
+      type: max_length
+      value: 60
+    message:
+      de: "Buchungstext darf maximal 60 Zeichen haben"
+      en: "Booking text must be at most 60 characters"
+    fix:
+      type: truncate
+      risk: medium
+      steps:
+        - operation: truncate
+          params:
+            max_length: 60
+
+  # ===========================================================================
+  # Date Rules
+  # ===========================================================================
+
+  DVL-DATE-001:
+    version: "1.0.0"
+    title: "Pflichtfeld Belegdatum fehlt"
+    stage: schema
+    severity: error
+    applies_to: row
+    selector:
+      field: belegdatum
+    constraint:
+      type: required
+      field: belegdatum
+    message:
+      de: "Das Pflichtfeld 'Belegdatum' fehlt oder ist leer"
+      en: "Required field 'Belegdatum' is missing or empty"
+
+  DVL-DATE-002:
+    version: "1.0.0"
+    title: "Belegdatum ungültiges Format"
+    stage: row_semantic
+    severity: error
+    applies_to: row
+    selector:
+      field: belegdatum
+    constraint:
+      type: regex
+      pattern: "^\\d{4}$"
+    message:
+      de: "Belegdatum muss im TTMM-Format sein (4 Ziffern)"
+      en: "Booking date must be in TTMM format (4 digits)"

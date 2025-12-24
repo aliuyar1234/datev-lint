@@ -1,0 +1,6 @@
+"EXTF";700;21;"Buchungsstapel";13;20250115120000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"EUR";;;;;;;0
+"Umsatz";"S/H";"WKZ";"Konto";"Gegenkonto";"Belegdatum";"Belegfeld 1";"Buchungstext"
+"100,00";"S";"EUR";"1200";"8400";"1501";"lowercase-test";"Valid row with lowercase belegfeld"
+"200,00";"X";"EUR";"1200";"8400";"1502";"VALID";"Invalid S/H value"
+"300,00";"H";"EUR";"";"8400";"1503";"VALID";"Missing konto"
+"400,00";"S";"EUR";"1200";"8400";"1504";"TOO-LONG-BELEGFELD-THAT-EXCEEDS-36-CHARACTERS-LIMIT";"Too long belegfeld1"
