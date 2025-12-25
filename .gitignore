@@ -80,5 +80,8 @@ dmypy.json
 # Audit logs
 audit/
 
+# Internal specs / design docs
+specs/
+
 # License files (development)
 .datev-lint-license.json
