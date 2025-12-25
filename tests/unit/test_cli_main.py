@@ -1,5 +1,6 @@
 """Tests for CLI main module."""
 
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -7,6 +8,14 @@ from typer.testing import CliRunner
 from datev_lint.cli.main import app
 
 runner = CliRunner()
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def _normalized_cli_output(result: object) -> str:
+    stdout = getattr(result, "stdout", "") or ""
+    stderr = getattr(result, "stderr", "") or ""
+    return _ANSI_ESCAPE_RE.sub("", stdout + stderr)
 
 
 class TestVersion:
@@ -32,21 +41,23 @@ class TestHelp:
         """Test --help shows help."""
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "DATEV export file validator" in result.stdout
+        assert "DATEV export file validator" in _normalized_cli_output(result)
 
     def test_validate_help(self) -> None:
         """Test validate --help shows options."""
         result = runner.invoke(app, ["validate", "--help"])
         assert result.exit_code == 0
-        assert "--format" in result.stdout
-        assert "--profile" in result.stdout
+        output = _normalized_cli_output(result)
+        assert "--format" in output
+        assert "--profile" in output
 
     def test_fix_help(self) -> None:
         """Test fix --help shows options."""
         result = runner.invoke(app, ["fix", "--help"])
         assert result.exit_code == 0
-        assert "--dry-run" in result.stdout
-        assert "--apply" in result.stdout
+        output = _normalized_cli_output(result)
+        assert "--dry-run" in output
+        assert "--apply" in output
 
 
 class TestValidate:
