@@ -116,15 +116,18 @@ class License(BaseModel):
         """Check if license is expired."""
         if self.expires_at is None:
             return False
-        return datetime.now(UTC) > self.expires_at
+        return datetime.now(UTC) >= self.expires_at
 
     @property
     def days_until_expiry(self) -> int | None:
-        """Days until expiry, or None if perpetual."""
+        """Calendar days until expiry, or None if perpetual."""
         if self.expires_at is None:
             return None
-        delta = self.expires_at - datetime.now(UTC)
-        return max(0, delta.days)
+        now = datetime.now(UTC)
+        if now >= self.expires_at:
+            return 0
+        delta_days = (self.expires_at.date() - now.date()).days
+        return max(0, delta_days)
 
     @property
     def expiry_status(self) -> ExpiryStatus:
@@ -132,11 +135,13 @@ class License(BaseModel):
         if self.expires_at is None:
             return ExpiryStatus.VALID
 
+        now = datetime.now(UTC)
+        if now >= self.expires_at:
+            return ExpiryStatus.EXPIRED
+
         days = self.days_until_expiry
         if days is None:
             return ExpiryStatus.VALID
-        if days <= 0:
-            return ExpiryStatus.EXPIRED
         if days <= 14:
             return ExpiryStatus.WARNING
         return ExpiryStatus.VALID
