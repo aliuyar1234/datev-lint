@@ -1,9 +1,6 @@
 """Tests for CSV tokenizer."""
 
-import pytest
-
 from datev_lint.core.parser.tokenizer import tokenize_line, tokenize_stream
-from datev_lint.core.parser.models import Dialect
 
 
 class TestTokenizeLine:
@@ -21,7 +18,7 @@ class TestTokenizeLine:
 
     def test_unquoted_fields(self) -> None:
         """Test tokenizing unquoted fields."""
-        result = tokenize_line('a;b;c')
+        result = tokenize_line("a;b;c")
         assert result == ["a", "b", "c"]
 
     def test_mixed_quoted_unquoted(self) -> None:
@@ -79,3 +76,20 @@ class TestTokenizeStream:
         assert records[0][1] == 1  # start_line
         assert records[1][1] == 2
         assert records[2][1] == 3
+        assert records[0][2] == 1  # end_line
+        assert records[1][2] == 2
+        assert records[2][2] == 3
+
+    def test_line_numbers_crlf(self) -> None:
+        """Test that CRLF line endings count as a single newline."""
+        text = '"a"\r\n"b"\r\n"c"'
+        records = list(tokenize_stream(text))
+        assert [r[1] for r in records] == [1, 2, 3]
+        assert [r[2] for r in records] == [1, 2, 3]
+
+    def test_line_numbers_cr(self) -> None:
+        """Test that CR-only line endings are tracked correctly."""
+        text = '"a"\r"b"\r"c"'
+        records = list(tokenize_stream(text))
+        assert [r[1] for r in records] == [1, 2, 3]
+        assert [r[2] for r in records] == [1, 2, 3]

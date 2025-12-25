@@ -1,9 +1,6 @@
 """Tests for audit logging."""
 
-from datetime import datetime
 from pathlib import Path
-
-import pytest
 
 from datev_lint.core.fix.audit import AuditLogger
 from datev_lint.core.fix.models import (
@@ -115,6 +112,12 @@ class TestAuditLogger:
         """Test getting non-existent entry."""
         logger = AuditLogger(audit_dir=tmp_path)
         entry = logger.get_entry("nonexistent")
+        assert entry is None
+
+    def test_get_entry_rejects_path_traversal(self, tmp_path: Path) -> None:
+        """Test that unsafe run IDs are rejected."""
+        logger = AuditLogger(audit_dir=tmp_path)
+        entry = logger.get_entry("../evil")
         assert entry is None
 
     def test_list_entries(self, tmp_path: Path) -> None:

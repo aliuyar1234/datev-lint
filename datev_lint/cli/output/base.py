@@ -61,7 +61,7 @@ class OutputAdapter(ABC):
         output = self.render_result(result)
         self.write(output)
 
-    def render_patch_plan(self, plan: PatchPlan) -> str:
+    def render_patch_plan(self, _plan: PatchPlan) -> str:
         """Render a patch plan. Override in subclasses that support it."""
         return ""
 
@@ -87,5 +87,9 @@ def get_output_adapter(
         from datev_lint.cli.output.sarif import SarifOutput
 
         return SarifOutput(stream=stream, color=color)
+    elif format == OutputFormat.JUNIT:
+        from datev_lint.cli.output.junit import JunitOutput
+
+        return JunitOutput(stream=stream, color=color)
     else:
         raise ValueError(f"Unknown output format: {format}")

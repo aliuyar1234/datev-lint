@@ -1,18 +1,17 @@
 """Tests for licensing module."""
 
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from datev_lint.core.licensing import (
+    FREE_LICENSE,
     ExpiryStatus,
     Feature,
     FeatureGate,
     FeatureGateError,
     License,
     LicenseTier,
-    FREE_LICENSE,
     check_feature,
     get_effective_license,
     get_expiry_warning,
@@ -95,7 +94,7 @@ class TestLicense:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            expires_at=datetime.now(UTC) + timedelta(days=30),
         )
 
         assert not license_obj.is_expired
@@ -106,7 +105,7 @@ class TestLicense:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
 
         assert license_obj.is_expired
@@ -117,7 +116,7 @@ class TestLicense:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
 
         assert not license_obj.is_expired
@@ -220,7 +219,7 @@ class TestExpiryHandling:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            expires_at=datetime.now(UTC) + timedelta(days=30),
         )
 
         effective = get_effective_license(license_obj)
@@ -231,7 +230,7 @@ class TestExpiryHandling:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
 
         effective = get_effective_license(license_obj)
@@ -242,7 +241,7 @@ class TestExpiryHandling:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
 
         warning = get_expiry_warning(license_obj)
@@ -254,7 +253,7 @@ class TestExpiryHandling:
         license_obj = License(
             license_id="test",
             tier=LicenseTier.PRO,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            expires_at=datetime.now(UTC) + timedelta(days=30),
         )
 
         warning = get_expiry_warning(license_obj)

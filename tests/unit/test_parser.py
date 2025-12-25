@@ -64,16 +64,25 @@ class TestParseFile:
         with pytest.raises(FileNotFoundError):
             parse_file("nonexistent_file.csv")
 
+    def test_parse_file_max_bytes(self, tmp_path: Path) -> None:
+        """Test that oversized files are rejected when max_bytes is set."""
+        file_path = tmp_path / "big.csv"
+        file_path.write_bytes(b"x" * 10)
+
+        result = parse_file(file_path, max_bytes=5)
+        assert result.has_fatal_errors
+        assert any(e.code == "DVL-IO-001" for e in result.header_errors)
+
 
 class TestParseBytes:
     """Tests for parse_bytes function."""
 
     def test_minimal_valid_data(self) -> None:
         """Test parsing minimal valid DATEV data."""
-        data = b'''"EXTF";700;21;"Buchungsstapel";13
+        data = b""""EXTF";700;21;"Buchungsstapel";13
 "Umsatz";"Konto"
 "100,00";"1200"
-'''
+"""
         result = parse_bytes(data, "<test>")
 
         assert result.header.header_version == 700
@@ -90,6 +99,12 @@ class TestParseBytes:
         result = parse_bytes(data, "<test>")
         assert result.has_fatal_errors
 
+    def test_parse_bytes_max_bytes(self) -> None:
+        """Test that oversized byte buffers are rejected when max_bytes is set."""
+        result = parse_bytes(b"x" * 10, "<test>", max_bytes=5)
+        assert result.has_fatal_errors
+        assert any(e.code == "DVL-IO-001" for e in result.header_errors)
+
 
 class TestMaterialize:
     """Tests for ParseResult.materialize method."""
@@ -97,7 +112,7 @@ class TestMaterialize:
     def test_materialize_rows(self, valid_minimal_700: Path) -> None:
         """Test materializing all rows."""
         result = parse_file(valid_minimal_700)
-        rows, errors = result.materialize()
+        rows, _errors = result.materialize()
 
         assert len(rows) == 10
         # Check that we can access row properties

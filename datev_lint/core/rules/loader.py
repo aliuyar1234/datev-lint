@@ -6,6 +6,7 @@ Loads rules from YAML files and Python plugins.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -24,6 +25,8 @@ from .models import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def load_rules_from_yaml(path: Path) -> list[Rule]:
@@ -51,7 +54,7 @@ def load_rules_from_yaml(path: Path) -> list[Rule]:
     if not path.exists():
         return []
 
-    with open(path, encoding="utf-8") as f:
+    with path.open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     rules_data = data.get("rules", {})
@@ -61,9 +64,8 @@ def load_rules_from_yaml(path: Path) -> list[Rule]:
         try:
             rule = _parse_rule(rule_id, rule_data)
             rules.append(rule)
-        except Exception as e:
-            # Log error but continue loading other rules
-            print(f"Warning: Failed to load rule {rule_id}: {e}")
+        except Exception:
+            logger.warning("Failed to load rule %s from %s", rule_id, path, exc_info=True)
 
     return rules
 
@@ -133,7 +135,7 @@ def load_profile_from_yaml(path: Path) -> Profile | None:
     ```yaml
     id: de.skr03.default
     version: "1.0.0"
-    label: "Deutschland SKR03 – Standard"
+    label: "Deutschland SKR03 - Standard"
     base: de.datev700.bookingbatch
 
     enable:
@@ -153,7 +155,7 @@ def load_profile_from_yaml(path: Path) -> Profile | None:
     if not path.exists():
         return None
 
-    with open(path, encoding="utf-8") as f:
+    with path.open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     if not data.get("id"):

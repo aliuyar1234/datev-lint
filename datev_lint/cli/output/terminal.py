@@ -1,7 +1,7 @@
 """
 Terminal output adapter.
 
-Renders findings with colors using Rich library.
+Renders findings with ANSI colors.
 """
 
 from __future__ import annotations
@@ -66,7 +66,9 @@ class TerminalOutput(OutputAdapter):
         super().__init__(stream=stream, color=color)
         self._use_rich = color and self._is_tty()
         self._use_unicode = _supports_unicode()
-        self._severity_symbols = SEVERITY_SYMBOLS_UNICODE if self._use_unicode else SEVERITY_SYMBOLS_ASCII
+        self._severity_symbols = (
+            SEVERITY_SYMBOLS_UNICODE if self._use_unicode else SEVERITY_SYMBOLS_ASCII
+        )
         self._success_symbol = SUCCESS_SYMBOL_UNICODE if self._use_unicode else SUCCESS_SYMBOL_ASCII
 
     def _is_tty(self) -> bool:
@@ -107,24 +109,7 @@ class TerminalOutput(OutputAdapter):
 
     def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result."""
-        from datev_lint.core.rules.models import ValidationSummary
-
-        # Create a basic summary if we have findings
-        summary = ValidationSummary(
-            file=result.file or "<unknown>",
-            encoding="utf-8",
-            row_count=0,
-            engine_version="0.1.0",
-            profile_id="default",
-            profile_version="1.0.0",
-            fatal_count=sum(1 for f in result.findings if f.severity.value == "fatal"),
-            error_count=sum(1 for f in result.findings if f.severity.value == "error"),
-            warn_count=sum(1 for f in result.findings if f.severity.value == "warn"),
-            info_count=sum(1 for f in result.findings if f.severity.value == "info"),
-            hint_count=sum(1 for f in result.findings if f.severity.value == "hint"),
-        )
-
-        return self.render_findings(result.findings, summary)
+        return self.render_findings(result.findings, result.get_summary())
 
     def render_patch_plan(self, plan: PatchPlan) -> str:
         """Render a patch plan preview."""
@@ -137,10 +122,12 @@ class TerminalOutput(OutputAdapter):
 
         if plan.conflicts:
             warn_symbol = self._severity_symbols.get("warn", "!")
-            lines.append(self._style(
-                f"\n{warn_symbol} {len(plan.conflicts)} conflict(s) detected (first-wins resolution)",
-                "yellow"
-            ))
+            lines.append(
+                self._style(
+                    f"\n{warn_symbol} {len(plan.conflicts)} conflict(s) detected (first-wins resolution)",
+                    "yellow",
+                )
+            )
 
         lines.append("")
 

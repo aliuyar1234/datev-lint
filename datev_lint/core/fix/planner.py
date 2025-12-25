@@ -26,8 +26,9 @@ if TYPE_CHECKING:
 
 def compute_file_checksum(file_path: str | Path) -> str:
     """Compute SHA-256 checksum of a file."""
+    file_path = Path(file_path)
     sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
+    with file_path.open("rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
             sha256.update(chunk)
     return sha256.hexdigest()
@@ -134,7 +135,11 @@ class PatchPlanner:
         for (row_no, field), patch_list in by_location.items():
             if len(patch_list) > 1:
                 # Select based on resolution strategy
-                selected = patch_list[0] if self.resolution == ConflictResolution.FIRST_WINS else patch_list[-1]
+                selected = (
+                    patch_list[0]
+                    if self.resolution == ConflictResolution.FIRST_WINS
+                    else patch_list[-1]
+                )
 
                 conflict = Conflict(
                     row_no=row_no,

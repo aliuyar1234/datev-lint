@@ -73,12 +73,14 @@ def get_validation_summary(
     pipeline_result: PipelineResult,
 ) -> ValidationSummary:
     """Create a validation summary from parse and pipeline results."""
-    row_count = 0
-    for item in parse_result.rows:
-        from datev_lint.core.parser import ParserError
+    row_count = pipeline_result.row_count
+    if row_count is None:
+        row_count = 0
+        for item in parse_result.rows:
+            from datev_lint.core.parser import ParserError
 
-        if not isinstance(item, ParserError):
-            row_count += 1
+            if not isinstance(item, ParserError):
+                row_count += 1
 
     return pipeline_result.get_summary(
         file=str(parse_result.file_path),

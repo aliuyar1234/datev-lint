@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from datev_lint.core.parser import ParserError, parse_file
+from datev_lint.core.parser import parse_file
 from datev_lint.core.rules import (
     Severity,
     get_registry,
@@ -63,10 +63,10 @@ class TestValidation:
         """Test that invalid S/H value is detected."""
         from datev_lint.core.parser import parse_bytes
 
-        data = b'''"EXTF";700;21;"Buchungsstapel";13;20250101000000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
+        data = b""""EXTF";700;21;"Buchungsstapel";13;20250101000000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
 "Umsatz";"S/H";"Konto";"Gegenkonto";"Belegdatum"
 "100,00";"X";"1200";"8400";"1501"
-'''
+"""
         result = parse_bytes(data, "<test>")
         validation = validate(result)
 
@@ -78,10 +78,10 @@ class TestValidation:
         """Test that missing Konto is detected."""
         from datev_lint.core.parser import parse_bytes
 
-        data = b'''"EXTF";700;21;"Buchungsstapel";13;20250101000000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
+        data = b""""EXTF";700;21;"Buchungsstapel";13;20250101000000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
 "Umsatz";"S/H";"Konto";"Gegenkonto";"Belegdatum"
 "100,00";"S";"";"8400";"1501"
-'''
+"""
         result = parse_bytes(data, "<test>")
         validation = validate(result)
 
@@ -93,10 +93,10 @@ class TestValidation:
         """Test that Belegfeld 1 issues are detected."""
         from datev_lint.core.parser import parse_bytes
 
-        data = b'''"EXTF";700;21;"Buchungsstapel";13;20250101000000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
+        data = b""""EXTF";700;21;"Buchungsstapel";13;20250101000000000;;;;;;"00001";"00002";20250101;4;20250101;20251231;"Test";;"";"";;"";"";"EUR";;;;;;;0
 "Umsatz";"S/H";"Konto";"Gegenkonto";"Belegdatum";"Belegfeld 1"
 "100,00";"S";"1200";"8400";"1501";"lowercase-invalid"
-'''
+"""
         result = parse_bytes(data, "<test>")
         validation = validate(result)
 

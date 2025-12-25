@@ -1,7 +1,5 @@
 """Tests for fix preview."""
 
-import pytest
-
 from datev_lint.core.fix.models import Patch, PatchOperation, PatchPlan
 from datev_lint.core.fix.preview import DiffGenerator, preview_diff, preview_patch
 from datev_lint.core.rules.models import RiskLevel

@@ -91,7 +91,7 @@ class FieldDictionary(BaseModel, frozen=True):
 
 def _load_field_dictionary_from_yaml(path: Path) -> FieldDictionary:
     """Load field dictionary from YAML file."""
-    with open(path, encoding="utf-8") as f:
+    with path.open(encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f)
 
     version = data.get("version", "1.0.0")

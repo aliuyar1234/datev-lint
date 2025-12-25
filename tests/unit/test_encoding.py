@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from datev_lint.core.parser import detect_encoding
 
 

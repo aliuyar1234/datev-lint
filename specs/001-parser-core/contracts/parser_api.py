@@ -10,18 +10,21 @@ Usage:
 Version: 1.0.0
 """
 
-from pathlib import Path
-from typing import Iterator, Protocol, Optional, Any, BinaryIO
-from decimal import Decimal
+from collections.abc import Iterator
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum
+from pathlib import Path
+from typing import Any, BinaryIO, Optional, Protocol
 
 # =============================================================================
 # Enums
 # =============================================================================
 
+
 class DetectedFormat(Enum):
     """Result of format detection."""
+
     DATEV_FORMAT = "datev"
     ASCII_STANDARD = "ascii"
     UNKNOWN = "unknown"
@@ -29,6 +32,7 @@ class DetectedFormat(Enum):
 
 class Severity(Enum):
     """Error severity levels."""
+
     FATAL = "fatal"
     ERROR = "error"
     WARN = "warn"
@@ -37,6 +41,7 @@ class Severity(Enum):
 
 class DateConfidence(Enum):
     """Confidence level for TTMM year derivation."""
+
     HIGH = "high"
     MEDIUM = "medium"
     AMBIGUOUS = "ambiguous"
@@ -48,38 +53,42 @@ class DateConfidence(Enum):
 # Data Classes (Protocols for type hints)
 # =============================================================================
 
+
 class DatevHeader(Protocol):
     """DATEV EXTF header from line 1."""
+
     kennzeichen: str
     header_version: int
     format_category: int
     format_name: str
     format_version: int
-    created_at: Optional[datetime]
-    beraternummer: Optional[str]  # ALWAYS string!
-    mandantennummer: Optional[str]  # ALWAYS string!
-    fiscal_year_start: Optional[date]
-    period_from: Optional[date]
-    period_to: Optional[date]
-    account_length: Optional[int]
-    currency: Optional[str]
-    festschreibung: Optional[int]
+    created_at: datetime | None
+    beraternummer: str | None  # ALWAYS string!
+    mandantennummer: str | None  # ALWAYS string!
+    fiscal_year_start: date | None
+    period_from: date | None
+    period_to: date | None
+    account_length: int | None
+    currency: str | None
+    festschreibung: int | None
     raw_tokens: list[str]
 
 
 class DerivedDate(Protocol):
     """Result of TTMM date year derivation."""
+
     raw_ttmm: str
     day: int
     month: int
-    year: Optional[int]
-    derived_date: Optional[date]
+    year: int | None
+    derived_date: date | None
     confidence: DateConfidence
-    warning_code: Optional[str]
+    warning_code: str | None
 
 
 class BookingRow(Protocol):
     """A single booking row."""
+
     row_no: int
     line_span: tuple[int, int]
     fields_raw: dict[str, str]
@@ -87,24 +96,25 @@ class BookingRow(Protocol):
     checksum: str
     raw_tokens: list[str]
 
-    def get_raw(self, field_id: str) -> Optional[str]: ...
-    def get_typed(self, field_id: str) -> Optional[Any]: ...
+    def get_raw(self, field_id: str) -> str | None: ...
+    def get_typed(self, field_id: str) -> Any | None: ...
 
     @property
-    def konto(self) -> Optional[str]: ...
+    def konto(self) -> str | None: ...
 
     @property
-    def gegenkonto(self) -> Optional[str]: ...
+    def gegenkonto(self) -> str | None: ...
 
     @property
-    def umsatz(self) -> Optional[Decimal]: ...
+    def umsatz(self) -> Decimal | None: ...
 
     @property
-    def belegdatum(self) -> Optional[DerivedDate]: ...
+    def belegdatum(self) -> DerivedDate | None: ...
 
 
 class ParserError(Protocol):
     """Structured parser error."""
+
     code: str
     severity: Severity
     title: str
@@ -115,6 +125,7 @@ class ParserError(Protocol):
 
 class ParseResult(Protocol):
     """Result of parsing a DATEV file."""
+
     file_path: Path
     detected_format: DetectedFormat
     encoding: str
@@ -134,6 +145,7 @@ class ParseResult(Protocol):
 # =============================================================================
 # Public API Functions
 # =============================================================================
+
 
 def parse_file(path: Path | str) -> ParseResult:
     """
@@ -217,9 +229,9 @@ def detect_format(data: bytes) -> DetectedFormat:
 
 def derive_year(
     ttmm: str,
-    fiscal_year_start: Optional[date] = None,
-    period_from: Optional[date] = None,
-    period_to: Optional[date] = None,
+    fiscal_year_start: date | None = None,
+    period_from: date | None = None,
+    period_to: date | None = None,
 ) -> DerivedDate:
     """
     Derive year for TTMM date format.
@@ -248,6 +260,7 @@ def derive_year(
 # Field Dictionary API
 # =============================================================================
 
+
 def get_field_dictionary() -> "FieldDictionary":
     """
     Get the Field Dictionary (Single Source of Truth).
@@ -260,6 +273,7 @@ def get_field_dictionary() -> "FieldDictionary":
 
 class FieldDictionary(Protocol):
     """Field Dictionary for DATEV fields."""
+
     fields: dict[str, "FieldDefinition"]
     version: str
 
@@ -269,12 +283,13 @@ class FieldDictionary(Protocol):
 
 class FieldDefinition(Protocol):
     """Definition of a DATEV field."""
+
     canonical_id: str
     synonyms: list[str]
     required: bool
     type: str
-    max_length: Optional[int]
-    charset: Optional[str]
+    max_length: int | None
+    charset: str | None
     fix_strategies: list[str]
 
 
@@ -285,24 +300,20 @@ class FieldDefinition(Protocol):
 PARSER_ERROR_CODES = {
     # Encoding errors
     "DVL-ENC-001": "Encoding unknown or unreadable",
-
     # CSV errors
     "DVL-CSV-001": "Delimiter mismatch or malformed quotes",
     "DVL-CSV-002": "Unexpected end of file in quoted field",
     "DVL-CSV-003": "Invalid character in field",
-
     # Header errors
     "DVL-HDR-001": "Missing EXTF or wrong format category",
     "DVL-HDR-002": "Invalid header version",
     "DVL-HDR-003": "Invalid format category (expected 21 for Buchungsstapel)",
     "DVL-HDR-004": "Invalid period dates",
-
     # Date errors
     "DVL-DATE-001": "Invalid TTMM format",
     "DVL-DATE-AMBIG-001": "TTMM date is ambiguous (could be multiple years)",
     "DVL-DATE-RANGE-001": "Date outside header period",
     "DVL-DATE-NOCTX-001": "No context data for year derivation",
-
     # Field errors
     "DVL-FIELD-001": "Required field missing",
     "DVL-FIELD-002": "Account number length invalid",

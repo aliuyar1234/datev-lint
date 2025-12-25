@@ -1,9 +1,6 @@
 """Tests for fix planner."""
 
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 from datev_lint.core.fix.models import ConflictResolution, PatchOperation
 from datev_lint.core.fix.planner import PatchPlanner, compute_bytes_checksum

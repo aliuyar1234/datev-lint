@@ -1,12 +1,11 @@
 """Tests for CLI output adapters."""
 
 import json
-from io import StringIO
-
-import pytest
+import xml.etree.ElementTree as ET
 
 from datev_lint.cli.output import (
     JsonOutput,
+    JunitOutput,
     OutputFormat,
     SarifOutput,
     TerminalOutput,
@@ -188,7 +187,45 @@ class TestGetOutputAdapter:
         adapter = get_output_adapter(OutputFormat.SARIF)
         assert isinstance(adapter, SarifOutput)
 
+    def test_get_junit_adapter(self) -> None:
+        """Test getting JUnit adapter."""
+        adapter = get_output_adapter(OutputFormat.JUNIT)
+        assert isinstance(adapter, JunitOutput)
+
     def test_get_by_string(self) -> None:
         """Test getting adapter by string."""
         adapter = get_output_adapter("json")
         assert isinstance(adapter, JsonOutput)
+
+
+class TestJunitOutput:
+    """Tests for JunitOutput."""
+
+    def test_render_empty_findings(self) -> None:
+        """Test rendering no findings as JUnit XML."""
+        output = JunitOutput()
+        xml = output.render_findings([])
+
+        root = ET.fromstring(xml)  # noqa: S314
+        assert root.tag == "testsuite"
+        assert root.attrib["tests"] == "1"
+        assert root.attrib["failures"] == "0"
+        assert root.attrib["errors"] == "0"
+
+    def test_render_counts_by_severity(self) -> None:
+        """Test JUnit counters match severity mapping."""
+        findings = [
+            make_finding(code="DVL-TEST-001", severity=Severity.ERROR),
+            make_finding(code="DVL-TEST-002", severity=Severity.WARN),
+            make_finding(code="DVL-TEST-003", severity=Severity.FATAL),
+            make_finding(code="DVL-TEST-004", severity=Severity.INFO),
+        ]
+
+        output = JunitOutput()
+        xml = output.render_findings(findings)
+        root = ET.fromstring(xml)  # noqa: S314
+
+        assert root.attrib["tests"] == "4"
+        assert root.attrib["failures"] == "2"
+        assert root.attrib["errors"] == "1"
+        assert root.attrib["skipped"] == "1"

@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from datev_lint.cli.main import app
@@ -70,6 +69,7 @@ class TestValidate:
         assert result.exit_code in (0, 1)
         # Should be valid JSON
         import json
+
         output = json.loads(result.stdout)
         assert "findings" in output
 
@@ -77,7 +77,11 @@ class TestValidate:
         """Test validate with invalid format."""
         result = runner.invoke(app, ["validate", str(valid_minimal_700), "--format", "invalid"])
         assert result.exit_code != 0
-        assert "Unknown format" in result.stdout or "Unknown format" in result.stderr or "invalid" in (result.stderr or "")
+        assert (
+            "Unknown format" in result.stdout
+            or "Unknown format" in result.stderr
+            or "invalid" in (result.stderr or "")
+        )
 
 
 class TestProfiles:

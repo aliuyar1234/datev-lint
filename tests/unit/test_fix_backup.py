@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from datev_lint.core.fix.backup import BackupManager
 from datev_lint.core.fix.planner import compute_file_checksum
 

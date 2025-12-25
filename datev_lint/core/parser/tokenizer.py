@@ -154,40 +154,52 @@ def tokenize_stream(
     line_no = 1
     record_start_line = 1
 
-    def is_line_terminator(c: str, next_c: str | None) -> bool:
-        """Check if current char is a line terminator."""
-        # Accept CR, LF, or CRLF as line terminators
-        return c in ("\r", "\n")
+    def flush_record() -> Iterator[tuple[list[str], int, int]]:
+        """Flush the current record and reset buffers/state."""
+        nonlocal fields, field_buffer, state
+
+        fields.append("".join(field_buffer))
+        if fields and any(f for f in fields):
+            yield fields, record_start_line, line_no
+
+        fields = []
+        field_buffer = []
+        state = TokenizerState.FIELD_START
 
     i = 0
     while i < len(text):
         char = text[i]
         next_char = text[i + 1] if i + 1 < len(text) else None
 
-        # Check for line terminator
-        is_eol = is_line_terminator(char, next_char) and state != TokenizerState.IN_QUOTED
-
-        # Track line numbers on LF
-        if char == "\n":
+        # Handle line endings (CRLF/CR/LF). Outside quotes this terminates the record,
+        # inside quotes it's part of the field (DATEV allows embedded newlines).
+        if char == "\r" and next_char == "\n":
+            if state == TokenizerState.IN_QUOTED:
+                field_buffer.append("\r\n")
+            else:
+                yield from flush_record()
             line_no += 1
+            if state != TokenizerState.IN_QUOTED:
+                record_start_line = line_no
+            i += 2
+            continue
+
+        if char in ("\r", "\n"):
+            if state == TokenizerState.IN_QUOTED:
+                field_buffer.append(char)
+            else:
+                yield from flush_record()
+            line_no += 1
+            if state != TokenizerState.IN_QUOTED:
+                record_start_line = line_no
+            i += 1
+            continue
 
         if state == TokenizerState.FIELD_START:
             if char == quotechar:
                 state = TokenizerState.IN_QUOTED
             elif char == delimiter:
                 fields.append("")
-            elif is_eol:
-                # End of record
-                fields.append("".join(field_buffer))
-                if fields and any(f for f in fields):
-                    yield fields, record_start_line, line_no
-                fields = []
-                field_buffer = []
-                record_start_line = line_no if char == "\n" else line_no
-                # Skip LF if we just saw CR
-                if char == "\r" and next_char == "\n":
-                    i += 1
-                    line_no += 1
             else:
                 field_buffer.append(char)
                 state = TokenizerState.IN_UNQUOTED
@@ -197,19 +209,6 @@ def tokenize_stream(
                 fields.append("".join(field_buffer))
                 field_buffer = []
                 state = TokenizerState.FIELD_START
-            elif is_eol:
-                # End of record
-                fields.append("".join(field_buffer))
-                if fields and any(f for f in fields):
-                    yield fields, record_start_line, line_no
-                fields = []
-                field_buffer = []
-                state = TokenizerState.FIELD_START
-                record_start_line = line_no if char == "\n" else line_no
-                # Skip LF if we just saw CR
-                if char == "\r" and next_char == "\n":
-                    i += 1
-                    line_no += 1
             else:
                 field_buffer.append(char)
 
@@ -217,7 +216,6 @@ def tokenize_stream(
             if char == quotechar:
                 state = TokenizerState.QUOTE_IN_QUOTED
             else:
-                # Include everything, including LF (multi-line field)
                 field_buffer.append(char)
 
         elif state == TokenizerState.QUOTE_IN_QUOTED:
@@ -229,19 +227,6 @@ def tokenize_stream(
                 fields.append("".join(field_buffer))
                 field_buffer = []
                 state = TokenizerState.FIELD_START
-            elif is_eol:
-                # End of record
-                fields.append("".join(field_buffer))
-                if fields and any(f for f in fields):
-                    yield fields, record_start_line, line_no
-                fields = []
-                field_buffer = []
-                state = TokenizerState.FIELD_START
-                record_start_line = line_no if char == "\n" else line_no
-                # Skip LF if we just saw CR
-                if char == "\r" and next_char == "\n":
-                    i += 1
-                    line_no += 1
             else:
                 # Content after closing quote
                 field_buffer.append(char)
@@ -252,7 +237,7 @@ def tokenize_stream(
     # Handle final record if not empty
     if field_buffer or fields:
         fields.append("".join(field_buffer))
-        if any(f for f in fields):  # Only yield if there's actual content
+        if fields and any(f for f in fields):
             yield fields, record_start_line, line_no
 
 

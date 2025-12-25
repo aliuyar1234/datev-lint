@@ -34,6 +34,7 @@ class SarifOutput(OutputAdapter):
     SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
 
     def __init__(self, stream: TextIO | None = None, color: bool = False, indent: int = 2):
+        del color  # SARIF is never colorized.
         super().__init__(stream=stream, color=False)
         self.indent = indent
 
@@ -43,6 +44,8 @@ class SarifOutput(OutputAdapter):
         summary: ValidationSummary | None = None,
     ) -> str:
         """Render findings as SARIF."""
+        tool_version = summary.engine_version if summary else "0.0.0"
+
         # Collect unique rules
         rules_dict: dict[str, Finding] = {}
         for finding in findings:
@@ -57,11 +60,9 @@ class SarifOutput(OutputAdapter):
                     "tool": {
                         "driver": {
                             "name": "datev-lint",
-                            "version": "0.1.0",
+                            "version": tool_version,
                             "informationUri": "https://github.com/datev-lint/datev-lint",
-                            "rules": [
-                                self._rule_to_sarif(f) for f in rules_dict.values()
-                            ],
+                            "rules": [self._rule_to_sarif(f) for f in rules_dict.values()],
                         }
                     },
                     "results": [self._finding_to_sarif(f) for f in findings],
@@ -73,7 +74,7 @@ class SarifOutput(OutputAdapter):
 
     def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result as SARIF."""
-        return self.render_findings(result.findings)
+        return self.render_findings(result.findings, result.get_summary())
 
     def _rule_to_sarif(self, finding: Finding) -> dict[str, Any]:
         """Convert a rule to SARIF rule descriptor."""
@@ -108,9 +109,7 @@ class SarifOutput(OutputAdapter):
         # Add location if available
         if finding.location.file or finding.location.row_no:
             locations = []
-            location: dict[str, Any] = {
-                "physicalLocation": {}
-            }
+            location: dict[str, Any] = {"physicalLocation": {}}
 
             if finding.location.file:
                 location["physicalLocation"]["artifactLocation"] = {

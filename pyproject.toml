@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "DATEV export file validator and linter"
 readme = "README.md"
 requires-python = ">=3.11"
-license = "MIT"
+license = { file = "LICENSE" }
 authors = [
     { name = "datev-lint contributors" }
 ]
@@ -29,6 +29,7 @@ dependencies = [
     "pydantic>=2.0,<3.0",
     "charset-normalizer>=3.0,<4.0",
     "pyyaml>=6.0,<7.0",
+    "typer>=0.9.0,<1.0",
 ]
 
 [project.optional-dependencies]
@@ -38,13 +39,10 @@ dev = [
     "ruff>=0.8.0",
     "mypy>=1.13",
     "types-PyYAML>=6.0",
+    "cryptography>=41.0",
 ]
 rules = [
     "pybloom-live>=4.0",
-]
-cli = [
-    "typer>=0.9.0,<1.0",
-    "rich>=13.0,<14.0",
 ]
 pro = [
     "jinja2>=3.0",
@@ -59,6 +57,16 @@ datev-lint = "datev_lint.cli.main:app"
 Homepage = "https://github.com/datev-lint/datev-lint"
 Documentation = "https://datev-lint.dev/docs"
 Repository = "https://github.com/datev-lint/datev-lint"
+
+# =============================================================================
+# Hatchling Build Configuration
+# =============================================================================
+[tool.hatch.build.targets.wheel]
+packages = ["datev_lint"]
+include = [
+    "datev_lint/py.typed",
+    "datev_lint/**/*.yaml",
+]
 
 # =============================================================================
 # Ruff Configuration
@@ -88,6 +96,7 @@ select = [
     "SIM",    # flake8-simplify
     "TCH",    # flake8-type-checking
     "PTH",    # flake8-use-pathlib
+    "S",      # flake8-bandit
     "RUF",    # Ruff-specific rules
 ]
 ignore = [

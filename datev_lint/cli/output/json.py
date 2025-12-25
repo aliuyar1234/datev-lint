@@ -23,7 +23,8 @@ class JsonOutput(OutputAdapter):
     format = OutputFormat.JSON
 
     def __init__(self, stream: TextIO | None = None, color: bool = False, indent: int = 2):
-        super().__init__(stream=stream, color=False)  # Never colorize JSON
+        del color  # JSON is never colorized.
+        super().__init__(stream=stream, color=False)
         self.indent = indent
 
     def render_findings(
@@ -43,23 +44,7 @@ class JsonOutput(OutputAdapter):
 
     def render_result(self, result: PipelineResult) -> str:
         """Render pipeline result as JSON."""
-        from datev_lint.core.rules.models import ValidationSummary
-
-        summary = ValidationSummary(
-            file=result.file or "<unknown>",
-            encoding="utf-8",
-            row_count=0,
-            engine_version="0.1.0",
-            profile_id="default",
-            profile_version="1.0.0",
-            fatal_count=sum(1 for f in result.findings if f.severity.value == "fatal"),
-            error_count=sum(1 for f in result.findings if f.severity.value == "error"),
-            warn_count=sum(1 for f in result.findings if f.severity.value == "warn"),
-            info_count=sum(1 for f in result.findings if f.severity.value == "info"),
-            hint_count=sum(1 for f in result.findings if f.severity.value == "hint"),
-        )
-
-        return self.render_findings(result.findings, summary)
+        return self.render_findings(result.findings, result.get_summary())
 
     def render_patch_plan(self, plan: PatchPlan) -> str:
         """Render patch plan as JSON."""

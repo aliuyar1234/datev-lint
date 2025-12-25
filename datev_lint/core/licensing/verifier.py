@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ try:
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
     HAS_CRYPTO = True
 except ImportError:
     HAS_CRYPTO = False
@@ -25,6 +27,7 @@ except ImportError:
 
 class VerificationError(Exception):
     """Raised when license verification fails."""
+
     pass
 
 
@@ -39,17 +42,25 @@ class LicenseVerifier:
             public_key_path: Path to PEM public key file.
                             If None, uses bundled key.
         """
-        self._public_key: Any = None
+        self._public_key: Ed25519PublicKey | None = None
+        self._key_error: str | None = None
 
         if not HAS_CRYPTO:
+            self._key_error = "cryptography is not installed; cannot verify license signatures"
             return
 
         if public_key_path is None:
-            # Use bundled public key
-            public_key_path = Path(__file__).parent.parent.parent / "keys" / "public_key.pem"
+            env_key_path = os.environ.get("DATEV_LINT_PUBLIC_KEY_PATH")
+            public_key_path = Path(env_key_path) if env_key_path else None
 
-        if public_key_path.exists():
-            self._load_public_key(public_key_path)
+        if public_key_path is None:
+            public_key_path = Path(__file__).resolve().parents[2] / "keys" / "public_key.pem"
+
+        if not public_key_path.exists():
+            self._key_error = f"Public key not found: {public_key_path}"
+            return
+
+        self._load_public_key(public_key_path)
 
     def _load_public_key(self, path: Path) -> None:
         """Load public key from PEM file."""
@@ -58,9 +69,12 @@ class LicenseVerifier:
 
         try:
             key_data = path.read_bytes()
-            self._public_key = load_pem_public_key(key_data)
+            key = load_pem_public_key(key_data)
+            if not isinstance(key, Ed25519PublicKey):
+                raise VerificationError("Public key is not an Ed25519 key")
+            self._public_key = key
         except Exception as e:
-            raise VerificationError(f"Failed to load public key: {e}")
+            raise VerificationError(f"Failed to load public key: {e}") from e
 
     def verify(self, license_data: dict[str, Any]) -> License:
         """
@@ -75,6 +89,14 @@ class LicenseVerifier:
         Raises:
             VerificationError: If signature is invalid
         """
+        if not HAS_CRYPTO:
+            raise VerificationError(
+                "cryptography is required to verify license signatures; "
+                "install datev-lint with the 'pro' extra"
+            )
+        if self._public_key is None:
+            raise VerificationError(self._key_error or "Public key not loaded")
+
         # Extract signature
         signature_b64 = license_data.get("signature", "")
         if not signature_b64:
@@ -84,15 +106,14 @@ class LicenseVerifier:
         verify_data = {k: v for k, v in license_data.items() if k != "signature"}
         message = json.dumps(verify_data, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
-        # Verify signature if crypto is available
-        if HAS_CRYPTO and self._public_key is not None:
-            try:
-                signature = base64.b64decode(signature_b64)
-                self._public_key.verify(signature, message)
-            except InvalidSignature:
-                raise VerificationError("Invalid license signature")
-            except Exception as e:
-                raise VerificationError(f"Signature verification failed: {e}")
+        # Verify signature
+        try:
+            signature = base64.b64decode(signature_b64)
+            self._public_key.verify(signature, message)
+        except InvalidSignature:
+            raise VerificationError("Invalid license signature") from None
+        except Exception as e:
+            raise VerificationError(f"Signature verification failed: {e}") from e
 
         # Parse license
         try:
@@ -112,7 +133,7 @@ class LicenseVerifier:
                 signature=signature_b64,
             )
         except Exception as e:
-            raise VerificationError(f"Invalid license format: {e}")
+            raise VerificationError(f"Invalid license format: {e}") from e
 
     def verify_file(self, license_path: Path) -> License:
         """
@@ -130,9 +151,9 @@ class LicenseVerifier:
         try:
             data = json.loads(license_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
-            raise VerificationError(f"Invalid license JSON: {e}")
+            raise VerificationError(f"Invalid license JSON: {e}") from e
         except Exception as e:
-            raise VerificationError(f"Failed to read license file: {e}")
+            raise VerificationError(f"Failed to read license file: {e}") from e
 
         return self.verify(data)
 

@@ -72,7 +72,7 @@ class PreserveWriter(Writer):
         self,
         plan: PatchPlan,
         parse_result: ParseResult,
-        output_path: Path,
+        _output_path: Path,
     ) -> bytes:
         """Write with minimal changes."""
         # Read original file
@@ -238,7 +238,7 @@ class CanonicalWriter(Writer):
         self,
         plan: PatchPlan,
         parse_result: ParseResult,
-        output_path: Path,
+        _output_path: Path,
     ) -> bytes:
         """Write with canonical formatting."""
         lines: list[str] = []
@@ -390,20 +390,20 @@ def write_file(
     try:
         if atomic:
             # Atomic write: write to temp file, then rename
-            fd, temp_path = tempfile.mkstemp(
+            fd, temp_path_str = tempfile.mkstemp(
                 dir=output_path.parent,
                 prefix=".datev_lint_",
                 suffix=".tmp",
             )
+            temp_path = Path(temp_path_str)
             try:
-                os.write(fd, content)
-                os.close(fd)
-                # Rename (atomic on most filesystems)
-                os.replace(temp_path, output_path)
+                with os.fdopen(fd, "wb") as f:
+                    f.write(content)
+                temp_path.replace(output_path)
             except Exception:
                 # Clean up temp file on failure
                 with contextlib.suppress(Exception):
-                    os.unlink(temp_path)
+                    temp_path.unlink()
                 raise
         else:
             output_path.write_bytes(content)

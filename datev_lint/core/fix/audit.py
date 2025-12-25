@@ -7,17 +7,31 @@ Logs all fix operations with versions and checksums.
 from __future__ import annotations
 
 import json
+import logging
+import re
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import datev_lint
 from datev_lint.core.fix.models import (
     AuditEntry,
     AuditPatchEntry,
     PatchPlan,
     WriteResult,
 )
+
+logger = logging.getLogger(__name__)
+
+_RUN_ID_PATTERN = re.compile(r"^[0-9a-fA-F-]{1,64}$")
+
+
+def _validate_run_id(run_id: str) -> str:
+    run_id = run_id.strip()
+    if not _RUN_ID_PATTERN.fullmatch(run_id):
+        raise ValueError("Invalid run_id")
+    return run_id
 
 
 class AuditLogger:
@@ -26,7 +40,7 @@ class AuditLogger:
     def __init__(
         self,
         audit_dir: Path,
-        engine_version: str = "0.1.0",
+        engine_version: str | None = None,
     ):
         """
         Initialize audit logger.
@@ -36,7 +50,7 @@ class AuditLogger:
             engine_version: Current engine version
         """
         self.audit_dir = Path(audit_dir)
-        self.engine_version = engine_version
+        self.engine_version = engine_version or datev_lint.__version__
         self.audit_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_run_id(self) -> str:
@@ -111,9 +125,10 @@ class AuditLogger:
         Log a rollback operation.
 
         Args:
-            run_id: Run ID of the original fix
+            run_id: Run ID for the rollback operation
             original_run_id: Run ID that was rolled back
         """
+        _ = run_id
         # Load original entry
         entry = self.get_entry(original_run_id)
         if entry is None:
@@ -152,11 +167,14 @@ class AuditLogger:
         Returns:
             AuditEntry or None if not found
         """
-        entry_path = self._entry_path(run_id)
+        try:
+            entry_path = self._entry_path(run_id)
+        except ValueError:
+            return None
         if not entry_path.exists():
             return None
 
-        with open(entry_path, encoding="utf-8") as f:
+        with entry_path.open(encoding="utf-8") as f:
             data = json.load(f)
 
         return self._dict_to_entry(data)
@@ -183,20 +201,21 @@ class AuditLogger:
                 break
 
             try:
-                with open(path, encoding="utf-8") as f:
+                with path.open(encoding="utf-8") as f:
                     data = json.load(f)
                 entry = self._dict_to_entry(data)
-
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+                logger.warning("Failed to read audit entry: %s", path, exc_info=True)
+            else:
                 if file_path is None or entry.file_path == file_path:
                     entries.append(entry)
-            except Exception:
-                continue
 
         return entries
 
     def _entry_path(self, run_id: str) -> Path:
         """Get file path for an audit entry."""
-        return self.audit_dir / f"{run_id}.json"
+        safe_run_id = _validate_run_id(run_id)
+        return self.audit_dir / f"{safe_run_id}.json"
 
     def _write_entry(self, entry: AuditEntry) -> None:
         """Write audit entry to file."""
@@ -204,7 +223,7 @@ class AuditLogger:
 
         data = self._entry_to_dict(entry)
 
-        with open(entry_path, "w", encoding="utf-8") as f:
+        with entry_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, default=str)
 
     def _entry_to_dict(self, entry: AuditEntry) -> dict[str, Any]:
@@ -237,7 +256,9 @@ class AuditLogger:
             "write_mode": entry.write_mode,
             "duration_ms": entry.duration_ms,
             "rolled_back": entry.rolled_back,
-            "rollback_timestamp": entry.rollback_timestamp.isoformat() if entry.rollback_timestamp else None,
+            "rollback_timestamp": entry.rollback_timestamp.isoformat()
+            if entry.rollback_timestamp
+            else None,
         }
 
     def _dict_to_entry(self, data: dict[str, Any]) -> AuditEntry:

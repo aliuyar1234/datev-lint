@@ -74,7 +74,8 @@ dmypy.json
 .ruff_cache/
 
 # Local settings
-.claude/settings.local.json
+.claude/
+.specify/
 
 # Audit logs
 audit/

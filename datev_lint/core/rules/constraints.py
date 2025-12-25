@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from .models import Constraint
@@ -41,7 +41,7 @@ class ConstraintChecker(ABC):
 class RegexConstraint(ConstraintChecker):
     """Check value against regex pattern."""
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, _context: dict[str, Any]) -> bool:
         if not constraint.pattern:
             return True
         try:
@@ -58,7 +58,7 @@ class RegexConstraint(ConstraintChecker):
 class MaxLengthConstraint(ConstraintChecker):
     """Check value does not exceed maximum length."""
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, _context: dict[str, Any]) -> bool:
         if constraint.value is None:
             return True
         return len(value) <= constraint.value
@@ -72,7 +72,7 @@ class MaxLengthConstraint(ConstraintChecker):
 class MinLengthConstraint(ConstraintChecker):
     """Check value meets minimum length."""
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, _context: dict[str, Any]) -> bool:
         if constraint.value is None:
             return True
         return len(value) >= constraint.value
@@ -86,7 +86,7 @@ class MinLengthConstraint(ConstraintChecker):
 class EnumConstraint(ConstraintChecker):
     """Check value is in allowed list."""
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, _context: dict[str, Any]) -> bool:
         if not constraint.values:
             return True
         return value in constraint.values
@@ -101,10 +101,10 @@ class EnumConstraint(ConstraintChecker):
 class RequiredConstraint(ConstraintChecker):
     """Check value is not empty."""
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, _constraint: Constraint, _context: dict[str, Any]) -> bool:
         return bool(value and value.strip())
 
-    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
+    def get_message(self, _value: str, constraint: Constraint, lang: str = "de") -> str:
         field = constraint.field or "Feld"
         if lang == "de":
             return f"{field} ist erforderlich"
@@ -115,14 +115,14 @@ class CharsetConstraint(ConstraintChecker):
     """Check value only contains allowed characters."""
 
     # Predefined charsets
-    CHARSETS = {
+    CHARSETS: ClassVar[dict[str, str]] = {
         "digits": r"^\d*$",
         "alphanumeric": r"^[A-Za-z0-9]*$",
         "belegfeld1": r"^[A-Z0-9_$&%*+\-/]*$",
         "uppercase": r"^[A-Z]*$",
     }
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, _context: dict[str, Any]) -> bool:
         # Use pattern if provided, otherwise look up charset name
         pattern = constraint.pattern
         if not pattern and constraint.params.get("charset"):
@@ -137,7 +137,7 @@ class CharsetConstraint(ConstraintChecker):
         except re.error:
             return False
 
-    def get_message(self, value: str, constraint: Constraint, lang: str = "de") -> str:
+    def get_message(self, _value: str, constraint: Constraint, lang: str = "de") -> str:
         charset = constraint.params.get("charset", "unbekannt")
         if lang == "de":
             return f"Wert enthält unerlaubte Zeichen für Zeichensatz '{charset}'"
@@ -147,7 +147,7 @@ class CharsetConstraint(ConstraintChecker):
 class RangeConstraint(ConstraintChecker):
     """Check numeric value is within range."""
 
-    def check(self, value: str, constraint: Constraint, context: dict[str, Any]) -> bool:
+    def check(self, value: str, constraint: Constraint, _context: dict[str, Any]) -> bool:
         try:
             num = float(value.replace(",", "."))
             min_val = constraint.params.get("min")
@@ -175,7 +175,7 @@ class RangeConstraint(ConstraintChecker):
 class ConstraintRegistry:
     """Registry of available constraint checkers."""
 
-    _checkers: dict[str, ConstraintChecker] = {}
+    _checkers: ClassVar[dict[str, ConstraintChecker]] = {}
 
     @classmethod
     def register(cls, constraint_type: str, checker: ConstraintChecker) -> None:

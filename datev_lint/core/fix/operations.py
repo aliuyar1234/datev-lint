@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, ClassVar
 
 from datev_lint.core.fix.models import OperationContext, PatchOperation
 
@@ -35,14 +35,14 @@ class Operation(ABC):
 class SetFieldOperation(Operation):
     """Set field to a specific value."""
 
-    def apply(self, value: str, context: OperationContext, params: dict[str, Any]) -> str:
+    def apply(self, value: str, _context: OperationContext, params: dict[str, Any]) -> str:
         return str(params.get("new_value", value))
 
 
 class UpperOperation(Operation):
     """Convert to uppercase."""
 
-    def apply(self, value: str, context: OperationContext, params: dict[str, Any]) -> str:
+    def apply(self, value: str, _context: OperationContext, _params: dict[str, Any]) -> str:
         return value.upper()
 
 
@@ -73,7 +73,7 @@ class SanitizeCharsOperation(Operation):
 class NormalizeDecimalOperation(Operation):
     """Normalize decimal format to German comma notation."""
 
-    def apply(self, value: str, context: OperationContext, params: dict[str, Any]) -> str:
+    def apply(self, value: str, _context: OperationContext, _params: dict[str, Any]) -> str:
         if not value.strip():
             return value
 
@@ -97,7 +97,7 @@ class NormalizeDecimalOperation(Operation):
 class DeleteRowOperation(Operation):
     """Mark row for deletion (returns empty string as marker)."""
 
-    def apply(self, value: str, context: OperationContext, params: dict[str, Any]) -> str:
+    def apply(self, _value: str, _context: OperationContext, _params: dict[str, Any]) -> str:
         # Special marker for row deletion - handled by writer
         return "\x00DELETE\x00"
 
@@ -110,7 +110,7 @@ class DeleteRowOperation(Operation):
 class OperationRegistry:
     """Registry of available operations."""
 
-    _operations: dict[PatchOperation, Operation] = {
+    _operations: ClassVar[dict[PatchOperation, Operation]] = {
         PatchOperation.SET_FIELD: SetFieldOperation(),
         PatchOperation.UPPER: UpperOperation(),
         PatchOperation.TRUNCATE: TruncateOperation(),
@@ -149,6 +149,6 @@ class OperationRegistry:
         """Apply an operation by name."""
         try:
             operation = PatchOperation(operation_name)
-        except ValueError:
-            raise ValueError(f"Unknown operation: {operation_name}")
+        except ValueError as e:
+            raise ValueError(f"Unknown operation: {operation_name}") from e
         return cls.apply(operation, value, context, params)

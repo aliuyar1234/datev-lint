@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 from collections import Counter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import datev_lint
 from datev_lint.core.parser import BookingRow, ParserError
@@ -41,6 +41,8 @@ class PipelineResult:
         profile_version: str = "",
         stats: dict[str, int] | None = None,
         file: str | None = None,
+        encoding: str | None = None,
+        row_count: int | None = None,
         profile_id: str = "default",
     ) -> None:
         self.findings = findings
@@ -49,6 +51,8 @@ class PipelineResult:
         self.profile_version = profile_version
         self.stats = stats or {}
         self.file = file
+        self.encoding = encoding
+        self.row_count = row_count
         self.profile_id = profile_id
 
     @property
@@ -61,15 +65,24 @@ class PipelineResult:
         """Check if any error or fatal findings."""
         return any(f.severity in (Severity.FATAL, Severity.ERROR) for f in self.findings)
 
-    def get_summary(self, file: str, encoding: str, row_count: int) -> ValidationSummary:
+    def get_summary(
+        self,
+        file: str | None = None,
+        encoding: str | None = None,
+        row_count: int | None = None,
+    ) -> ValidationSummary:
         """Create a validation summary."""
         severity_counts = Counter(f.severity for f in self.findings)
         code_counts = Counter(f.code for f in self.findings)
 
+        file_value = file or self.file or "<unknown>"
+        encoding_value = encoding or self.encoding or "<unknown>"
+        row_count_value = (self.row_count or 0) if row_count is None else row_count
+
         return ValidationSummary(
-            file=file,
-            encoding=encoding,
-            row_count=row_count,
+            file=file_value,
+            encoding=encoding_value,
+            row_count=row_count_value,
             engine_version=self.engine_version,
             profile_id=self.profile_id,
             profile_version=self.profile_version,
@@ -91,7 +104,7 @@ class ExecutionPipeline:
     """
 
     # Stages where FATAL findings abort execution
-    FATAL_STAGES = {Stage.PARSE, Stage.HEADER}
+    FATAL_STAGES: ClassVar[set[Stage]] = {Stage.PARSE, Stage.HEADER}
 
     def __init__(
         self,
@@ -111,6 +124,7 @@ class ExecutionPipeline:
             "rows_checked": 0,
             "rules_run": 0,
         }
+        filename = str(parse_result.file_path)
 
         # Get profile-filtered rules
         if self.profile:
@@ -125,44 +139,69 @@ class ExecutionPipeline:
                 self._rules_by_stage[rule.stage] = []
             self._rules_by_stage[rule.stage].append(rule)
 
-        # Include parser errors as findings
-        for error in parse_result.header_errors:
-            findings.append(
-                Finding(
-                    code=error.code,
-                    rule_version="1.0.0",
-                    engine_version=datev_lint.__version__,
-                    severity=Severity(error.severity.value),
-                    title=error.title,
-                    message=error.message,
-                    location=Location(
-                        file=error.location.file,
-                        row_no=error.location.line_no,
-                        column=error.location.column,
-                        field=error.location.field,
-                    ),
-                    context=error.context,
-                )
+        # Include parser errors (header/columns) as findings.
+        parser_findings = [
+            self._parser_error_to_finding(error, filename) for error in parse_result.header_errors
+        ]
+        findings.extend(parser_findings)
+
+        # Abort early if parsing already failed fatally.
+        if any(f.severity == Severity.FATAL for f in parser_findings):
+            end_time = time.perf_counter()
+            stats["duration_ms"] = int((end_time - start_time) * 1000)
+            return PipelineResult(
+                findings=findings,
+                aborted_at_stage=Stage.PARSE,
+                profile_version=self.profile.version if self.profile else "1.0.0",
+                stats=stats,
+                file=filename,
+                encoding=parse_result.encoding,
+                row_count=0,
+                profile_id=self.profile.id if self.profile else "default",
             )
 
         # Run stages in order
+        row_count = 0
         for stage in Stage:
-            stage_findings = self._run_stage(stage, parse_result)
+            # Run SCHEMA + ROW_SEMANTIC in a single pass for performance.
+            if stage == Stage.SCHEMA:
+                schema_rules = self._rules_by_stage.get(Stage.SCHEMA, [])
+                semantic_rules = self._rules_by_stage.get(Stage.ROW_SEMANTIC, [])
+
+                stage_findings, row_count = self._run_row_stages(
+                    parse_result=parse_result,
+                    schema_rules=schema_rules,
+                    semantic_rules=semantic_rules,
+                    filename=filename,
+                )
+                findings.extend(stage_findings)
+                stats["rows_checked"] = row_count
+                stats["rules_run"] += len(schema_rules) + len(semantic_rules)
+                continue
+
+            if stage == Stage.ROW_SEMANTIC:
+                continue
+
+            stage_findings = self._run_stage(stage, parse_result, filename)
             findings.extend(stage_findings)
             stats["rules_run"] += len(self._rules_by_stage.get(stage, []))
 
             # Check for fatal abort
-            if stage in self.FATAL_STAGES:
-                if any(f.severity == Severity.FATAL for f in stage_findings):
-                    end_time = time.perf_counter()
-                    stats["duration_ms"] = int((end_time - start_time) * 1000)
-                    return PipelineResult(
-                        findings=findings,
-                        aborted_at_stage=stage,
-                        profile_version=self.profile.version if self.profile else "1.0.0",
-                        stats=stats,
-                        profile_id=self.profile.id if self.profile else "default",
-                    )
+            if stage in self.FATAL_STAGES and any(
+                f.severity == Severity.FATAL for f in stage_findings
+            ):
+                end_time = time.perf_counter()
+                stats["duration_ms"] = int((end_time - start_time) * 1000)
+                return PipelineResult(
+                    findings=findings,
+                    aborted_at_stage=stage,
+                    profile_version=self.profile.version if self.profile else "1.0.0",
+                    stats=stats,
+                    file=filename,
+                    encoding=parse_result.encoding,
+                    row_count=row_count,
+                    profile_id=self.profile.id if self.profile else "default",
+                )
 
         end_time = time.perf_counter()
         stats["duration_ms"] = int((end_time - start_time) * 1000)
@@ -171,44 +210,81 @@ class ExecutionPipeline:
             findings=findings,
             profile_version=self.profile.version if self.profile else "1.0.0",
             stats=stats,
+            file=filename,
+            encoding=parse_result.encoding,
+            row_count=row_count,
             profile_id=self.profile.id if self.profile else "default",
         )
 
-    def _run_stage(self, stage: Stage, parse_result: ParseResult) -> list[Finding]:
+    def _run_row_stages(
+        self,
+        *,
+        parse_result: ParseResult,
+        schema_rules: list[Rule],
+        semantic_rules: list[Rule],
+        filename: str,
+    ) -> tuple[list[Finding], int]:
+        """Run schema + semantic row rules in a single pass over the file."""
+        findings: list[Finding] = []
+        rows_checked = 0
+
+        if not schema_rules and not semantic_rules:
+            return findings, rows_checked
+
+        for item in parse_result.rows:
+            if isinstance(item, ParserError):
+                findings.append(self._parser_error_to_finding(item, filename))
+                continue
+
+            rows_checked += 1
+            for rule in schema_rules:
+                findings.extend(self._run_row_rule(rule, item, filename))
+            for rule in semantic_rules:
+                findings.extend(self._run_row_rule(rule, item, filename))
+
+        return findings, rows_checked
+
+    def _run_stage(
+        self,
+        stage: Stage,
+        parse_result: ParseResult,
+        filename: str,
+    ) -> list[Finding]:
         """Run all rules for a stage."""
         rules = self._rules_by_stage.get(stage, [])
         if not rules:
             return []
 
         findings: list[Finding] = []
-        filename = str(parse_result.file_path)
 
         if stage == Stage.HEADER:
-            # Run header rules
             for rule in rules:
-                stage_findings = self._run_header_rule(rule, parse_result, filename)
-                findings.extend(stage_findings)
-
-        elif stage in (Stage.SCHEMA, Stage.ROW_SEMANTIC):
-            # Run row rules
-            row_no = 0
-            for item in parse_result.rows:
-                if isinstance(item, ParserError):
-                    continue
-
-                row_no += 1
-                for rule in rules:
-                    row_findings = self._run_row_rule(rule, item, filename)
-                    findings.extend(row_findings)
+                findings.extend(self._run_header_rule(rule, parse_result, filename))
 
         elif stage == Stage.CROSS_ROW:
-            # Cross-row rules need to collect data first
-            # This is handled by specialized rules
+            # Cross-row rules need to collect data first.
             for rule in rules:
-                cross_findings = self._run_cross_row_rule(rule, parse_result, filename)
-                findings.extend(cross_findings)
+                findings.extend(self._run_cross_row_rule(rule, parse_result, filename))
 
         return findings
+
+    def _parser_error_to_finding(self, error: ParserError, filename: str) -> Finding:
+        """Convert a ParserError to a Finding."""
+        return Finding(
+            code=error.code,
+            rule_version="1.0.0",
+            engine_version=datev_lint.__version__,
+            severity=Severity(error.severity.value),
+            title=error.title,
+            message=error.message,
+            location=Location(
+                file=error.location.file or filename,
+                row_no=error.location.line_no,
+                column=error.location.column,
+                field=error.location.field,
+            ),
+            context=error.context,
+        )
 
     def _run_header_rule(
         self,
@@ -268,9 +344,7 @@ class ExecutionPipeline:
         if value is None:
             # Check if required
             if rule.constraint.type == "required":
-                findings.append(
-                    self._create_finding(rule, "", row.row_no, field_name, filename)
-                )
+                findings.append(self._create_finding(rule, "", row.row_no, field_name, filename))
             return findings
 
         # Check constraint
@@ -301,9 +375,9 @@ class ExecutionPipeline:
 
     def _run_cross_row_rule(
         self,
-        rule: Rule,
-        parse_result: ParseResult,
-        filename: str,
+        _rule: Rule,
+        _parse_result: ParseResult,
+        _filename: str,
     ) -> list[Finding]:
         """Run a cross-row rule (e.g., duplicate detection)."""
         # Cross-row rules are typically implemented as Python plugins

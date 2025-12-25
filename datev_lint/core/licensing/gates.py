@@ -25,7 +25,6 @@ FEATURE_MIN_TIER: dict[Feature, LicenseTier] = {
     Feature.JSON_OUTPUT: LicenseTier.FREE,
     Feature.FIX_DRY_RUN: LicenseTier.FREE,
     Feature.FINGERPRINT: LicenseTier.FREE,
-
     # Pro features
     Feature.FIX_APPLY: LicenseTier.PRO,
     Feature.PDF_REPORT: LicenseTier.PRO,
@@ -33,11 +32,9 @@ FEATURE_MIN_TIER: dict[Feature, LicenseTier] = {
     Feature.SARIF_FULL: LicenseTier.PRO,
     Feature.JUNIT_OUTPUT: LicenseTier.PRO,
     Feature.ROLLBACK: LicenseTier.PRO,
-
     # Team features
     Feature.SHARED_PROFILES: LicenseTier.TEAM,
     Feature.AUDIT_LOG_API: LicenseTier.TEAM,
-
     # Enterprise features
     Feature.SSO_SAML: LicenseTier.ENTERPRISE,
     Feature.CUSTOM_RULES: LicenseTier.ENTERPRISE,
@@ -142,13 +139,16 @@ def require_feature(feature: Feature) -> Callable[[F], F]:
     Raises:
         FeatureGateError: If feature is not available
     """
+
     def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             gate = FeatureGate()
             gate.require(feature)
             return func(*args, **kwargs)
+
         return wrapper  # type: ignore
+
     return decorator
 
 

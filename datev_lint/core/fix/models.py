@@ -136,7 +136,9 @@ class WriteResult(BaseModel, frozen=True):
     new_checksum: str = Field(description="Checksum after changes")
 
     mode: WriteMode = Field(description="Write mode used")
-    fallback_used: bool = Field(default=False, description="True if preserve fell back to canonical")
+    fallback_used: bool = Field(
+        default=False, description="True if preserve fell back to canonical"
+    )
 
     patches_applied: int = Field(default=0)
     duration_ms: int = Field(default=0)

@@ -52,7 +52,7 @@ from .rows import parse_row
 from .tokenizer import tokenize_stream
 
 
-def parse_file(path: Path | str) -> ParseResult:
+def parse_file(path: Path | str, *, max_bytes: int | None = None) -> ParseResult:
     """
     Parse a DATEV EXTF file.
 
@@ -70,11 +70,50 @@ def parse_file(path: Path | str) -> ParseResult:
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
+    return parse_bytes_from_path(path, max_bytes=max_bytes)
+
+
+def parse_bytes_from_path(path: Path, *, max_bytes: int | None = None) -> ParseResult:
+    """
+    Parse a DATEV file from disk with optional size limits.
+
+    Args:
+        path: Path to the DATEV file
+        max_bytes: Maximum bytes to read (None = unlimited)
+
+    Returns:
+        ParseResult with header and streaming row iterator
+    """
+    if max_bytes is not None and max_bytes > 0:
+        with path.open("rb") as f:
+            data = f.read(max_bytes + 1)
+        if len(data) > max_bytes:
+            file_size: int | None
+            try:
+                file_size = path.stat().st_size
+            except OSError:
+                file_size = None
+            return _create_error_result(
+                filename=str(path),
+                encoding="<unknown>",
+                detected_format=DetectedFormat.UNKNOWN,
+                error=ParserError.fatal(
+                    code="DVL-IO-001",
+                    title="File too large",
+                    message=f"File exceeds maximum size of {max_bytes} bytes",
+                    location=Location(file=str(path)),
+                    context={"max_bytes": max_bytes, "file_size": file_size},
+                ),
+            )
+        return parse_bytes(data, str(path), max_bytes=max_bytes)
+
     data = path.read_bytes()
-    return parse_bytes(data, str(path))
+    return parse_bytes(data, str(path), max_bytes=None)
 
 
-def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
+def parse_bytes(
+    data: bytes, filename: str = "<bytes>", *, max_bytes: int | None = None
+) -> ParseResult:
     """
     Parse DATEV data from bytes.
 
@@ -85,6 +124,20 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
     Returns:
         ParseResult with header and streaming row iterator
     """
+    if max_bytes is not None and max_bytes > 0 and len(data) > max_bytes:
+        return _create_error_result(
+            filename=filename,
+            encoding="<unknown>",
+            detected_format=DetectedFormat.UNKNOWN,
+            error=ParserError.fatal(
+                code="DVL-IO-001",
+                title="File too large",
+                message=f"Input exceeds maximum size of {max_bytes} bytes",
+                location=Location(file=filename),
+                context={"max_bytes": max_bytes, "file_size": len(data)},
+            ),
+        )
+
     # Step 1: Detect encoding
     encoding = detect_encoding(data)
 
@@ -93,11 +146,16 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
 
     # Step 3: Decode data
     text = data.decode(encoding, errors="replace")
+    dialect = Dialect()
 
     # Step 4: Tokenize
-    records = list(tokenize_stream(text, Dialect()))
+    records_iter = tokenize_stream(text, dialect)
 
-    if len(records) < 2:
+    # Need at least 2 records (header + columns)
+    try:
+        header_tokens, _, _ = next(records_iter)
+        column_tokens, _, _ = next(records_iter)
+    except StopIteration:
         # Not enough records for header and column line
         return _create_error_result(
             filename=filename,
@@ -112,7 +170,6 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
         )
 
     # Step 5: Parse header (first record)
-    header_tokens, _, _ = records[0]
     header, header_errors = parse_header(header_tokens, filename)
 
     if header is None:
@@ -121,7 +178,9 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
             filename=filename,
             encoding=encoding,
             detected_format=detected_format,
-            error=header_errors[0] if header_errors else ParserError.fatal(
+            error=header_errors[0]
+            if header_errors
+            else ParserError.fatal(
                 code="DVL-HDR-001",
                 title="Header parsing failed",
                 message="Could not parse header",
@@ -130,18 +189,20 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
         )
 
     # Step 6: Parse column headers (second record)
-    column_tokens, _, _ = records[1]
     columns, column_errors = map_columns(column_tokens, filename=filename)
     header_errors.extend(column_errors)
 
     # Step 7: Create row factory for streaming
-    data_records = records[2:]  # Data rows start at record 3
-
     def row_factory() -> Iterator[BookingRow | ParserError]:
         """Create an iterator over data rows."""
         row_no = 3  # Data rows start at line 3
 
-        for tokens, start_line, end_line in data_records:
+        # Re-tokenize from the start to keep the iterator reusable.
+        row_records = tokenize_stream(text, dialect)
+        next(row_records, None)  # header
+        next(row_records, None)  # columns
+
+        for tokens, start_line, end_line in row_records:
             # Skip empty rows
             if not tokens or not any(t.strip() for t in tokens):
                 row_no += 1
@@ -157,9 +218,7 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
             )
 
             # Yield errors
-            for error in row_errors:
-                if error.severity in (Severity.ERROR, Severity.FATAL):
-                    yield error
+            yield from row_errors
 
             # Yield row if successfully parsed
             if row is not None:
@@ -181,7 +240,7 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
         file_path=Path(filename),
         detected_format=detected_format,
         encoding=encoding,
-        dialect=Dialect(),
+        dialect=dialect,
         header=header,
         columns=columns,
         row_factory_fn=row_factory,
@@ -189,7 +248,9 @@ def parse_bytes(data: bytes, filename: str = "<bytes>") -> ParseResult:
     )
 
 
-def parse_stream(stream: BinaryIO, filename: str = "<stream>") -> ParseResult:
+def parse_stream(
+    stream: BinaryIO, filename: str = "<stream>", *, max_bytes: int | None = None
+) -> ParseResult:
     """
     Parse DATEV data from a binary stream.
 
@@ -200,8 +261,9 @@ def parse_stream(stream: BinaryIO, filename: str = "<stream>") -> ParseResult:
     Returns:
         ParseResult with header and streaming row iterator
     """
-    data = stream.read()
-    return parse_bytes(data, filename)
+    data = stream.read(max_bytes + 1) if max_bytes is not None and max_bytes > 0 else stream.read()
+
+    return parse_bytes(data, filename, max_bytes=max_bytes)
 
 
 def _create_error_result(

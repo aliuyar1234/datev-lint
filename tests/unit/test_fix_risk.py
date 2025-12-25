@@ -1,7 +1,5 @@
 """Tests for risk management."""
 
-import pytest
-
 from datev_lint.core.fix.models import Patch, PatchOperation, PatchPlan
 from datev_lint.core.fix.risk import (
     filter_by_risk,

@@ -168,6 +168,8 @@ PARSER_ERROR_CODES: dict[str, str] = {
     # Encoding errors
     "DVL-ENC-001": "Encoding unknown or unreadable",
     "DVL-ENC-002": "Invalid byte sequence for detected encoding",
+    # I/O errors
+    "DVL-IO-001": "File exceeds maximum allowed size",
     # CSV errors
     "DVL-CSV-001": "Delimiter mismatch or malformed quotes",
     "DVL-CSV-002": "Unexpected end of file in quoted field",

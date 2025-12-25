@@ -33,7 +33,7 @@ from datev_lint.core.fix.risk import (
     requires_interactive_approval,
     should_apply,
 )
-from datev_lint.core.fix.writer import get_writer, write_file
+from datev_lint.core.fix.writer import write_file
 from datev_lint.core.rules.models import RiskLevel
 
 if TYPE_CHECKING:
@@ -109,8 +109,6 @@ def apply_fixes(
     Returns:
         Tuple of (WriteResult, AuditEntry or None)
     """
-    from datev_lint.core.parser import parse_file
-
     file_path = Path(plan.file_path)
 
     # Filter patches by risk

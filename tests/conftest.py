@@ -132,15 +132,15 @@ def _generate_large_datev_file(path: Path, num_rows: int) -> None:
     # Header line 1 (metadata)
     header1 = (
         '"EXTF";700;21;"Buchungsstapel";13;'
-        '20250101000000000;;;;;'
+        "20250101000000000;;;;;"
         '"12345";"67890";'  # Beraternummer, Mandantennummer
-        '20250101;4;'  # WJ-Beginn, Sachkontenlänge
-        '20250101;20251231;'  # Zeitraum
+        "20250101;4;"  # WJ-Beginn, Sachkontenlänge
+        "20250101;20251231;"  # Zeitraum
         '"Test Benchmark";;'  # Bezeichnung, Diktatkürzel
         '"";"";;'  # Buchungstyp, Rechnungslegung
         ';"";"EUR";'  # reserviert, WKZ
-        ';;;;;'  # Derivat, Kost1, Kost2, Herkunft
-        ';0'  # Festschreibung
+        ";;;;;"  # Derivat, Kost1, Kost2, Herkunft
+        ";0"  # Festschreibung
     )
 
     # Header line 2 (column names)
@@ -167,7 +167,7 @@ def _generate_large_datev_file(path: Path, num_rows: int) -> None:
             f'"{amount}";"S";"EUR";"";"";"";'
             f'"{konto}";"{gegenkonto}";"";'
             f'"{belegdatum}";"{belegfeld1}";"";'
-            f'"";\"Buchung {i}\";"";"";'
+            f'"";"Buchung {i}";"";"";'
         )
         lines.append(row)
 
@@ -186,10 +186,10 @@ def sample_extf_header() -> str:
     """Return a sample EXTF header line for testing."""
     return (
         '"EXTF";700;21;"Buchungsstapel";13;'
-        '20250101120000000;;;;;'
+        "20250101120000000;;;;;"
         '"00001";"00002";'
-        '20250101;4;'
-        '20250101;20251231;'
+        "20250101;4;"
+        "20250101;20251231;"
         '"Test";;"";"";;"";"";"EUR";;;;;;;0'
     )
 

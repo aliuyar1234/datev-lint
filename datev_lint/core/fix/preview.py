@@ -139,7 +139,7 @@ class DiffGenerator:
 
         if self.colorize:
             color = "\033[31m" if is_old else "\033[32m"
-            return f"{color}\"{display}\"\033[0m"
+            return f'{color}"{display}"\033[0m'
         return f'"{display}"'
 
 
@@ -186,4 +186,4 @@ def preview_patch(patch: Patch, colorize: bool = True) -> str:
         old_display = f'"{patch.old_value}"'
         new_display = f'"{patch.new_value}"'
 
-    return f'Row {patch.row_no}, {patch.field} {risk_symbol}: {old_display} → {new_display} ({patch.rule_id})'
+    return f"Row {patch.row_no}, {patch.field} {risk_symbol}: {old_display} → {new_display} ({patch.rule_id})"

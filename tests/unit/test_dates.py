@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from datev_lint.core.parser import DateConfidence, derive_year
 
 

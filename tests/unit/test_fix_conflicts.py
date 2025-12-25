@@ -1,7 +1,5 @@
 """Tests for conflict detection."""
 
-import pytest
-
 from datev_lint.core.fix.conflicts import (
     ConflictDetector,
     detect_conflicts,
