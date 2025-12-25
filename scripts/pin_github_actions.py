@@ -31,14 +31,14 @@ def _github_headers(token: str | None) -> dict[str, str]:
 
 
 def _resolve_ref_to_sha(uses: UsesRef, token: str | None) -> str:
-    if (
-        "/" not in uses.action
-        or uses.action.startswith("./")
-        or uses.action.startswith("docker://")
-    ):
+    if uses.action.startswith("./") or uses.action.startswith("docker://"):
         raise ValueError(f"Unsupported action reference: {uses.action}")
 
-    owner, repo = uses.action.split("/", 1)
+    parts = uses.action.split("/")
+    if len(parts) < 2:
+        raise ValueError(f"Unsupported action reference: {uses.action}")
+
+    owner, repo = parts[0], parts[1]
     url = f"https://api.github.com/repos/{owner}/{repo}/commits/{uses.ref}"
 
     request = urllib.request.Request(url, headers=_github_headers(token))  # noqa: S310
